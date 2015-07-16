@@ -2,6 +2,8 @@ import abc
 from .structure import *
 from .feedback import *
 
+print(info(as_proper("Needs")+" features are loaded."))
+
 class Variable(object, metaclass=abc.ABCMeta):
     def __init__(self, name, pattern=None):
         self._name = name

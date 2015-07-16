@@ -3,6 +3,8 @@ from .feedback import *
 from .structure import *
 from .need import *
 
+print(info(as_proper("Commandline call") + " features are loaded."))
+
 class Call(Doable):
     def __init__(self, command, splitby=' '):
         self._command = command

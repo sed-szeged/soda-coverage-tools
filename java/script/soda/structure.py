@@ -1,6 +1,8 @@
 import abc
 from .feedback import *
 
+print(info(as_proper("Logical structure")+" is loaded."))
+
 class Doable(object, metaclass=abc.ABCMeta):
     _name = ''
 
