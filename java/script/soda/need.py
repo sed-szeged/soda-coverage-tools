@@ -72,5 +72,5 @@ class CleverString(str):
         for name in _variables:
             variable = _variables[name]
             processed = variable.substitute(processed)
+        print(info('resolved as: ' + processed))
         return processed
-    

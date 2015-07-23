@@ -7,7 +7,7 @@ class Doable(object, metaclass=abc.ABCMeta):
     _name = ''
 
     @abc.abstractmethod
-    def _do(self):
+    def _do(self, *args, **kvargs):
         pass
 
     def do(self):

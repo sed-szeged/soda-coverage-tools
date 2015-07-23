@@ -10,6 +10,8 @@ class Call(Doable):
         self._command = command
         self._splitby = splitby
 
-
-    def _do(self):
-        sp.call(CleverString(self._command).value.split(self._splitby), shell=True)
+    def _do(self, *args, **kvargs):
+        command = CleverString(self._command).value
+        #command = CleverString(self._command).value.split(self._splitby)
+        print(info('executing: %s' % command))
+        sp.call(command, shell=True, *args, **kvargs)
