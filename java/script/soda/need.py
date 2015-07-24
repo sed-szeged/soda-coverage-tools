@@ -1,6 +1,7 @@
 import abc
 from .structure import *
 from .feedback import *
+import sys
 
 print(info(as_proper("Needs")+" features are loaded."))
 
@@ -43,7 +44,15 @@ class aString(Variable):
 
 
 _variables = {}
-
+for arg in sys.argv[1:]:
+    if '=' in arg:
+        parts = arg.split('=')
+        var = aString(parts[0])
+        var.value = parts[1]
+        _variables[parts[0]] = var
+        print(info(var))
+    else:
+        print(warn('Syntax error in argument: %s' % arg))
 
 class Need(Doable):
     def __init__(self, variable):
@@ -53,7 +62,7 @@ class Need(Doable):
     def _do(self):
         global _variables
         if self._variable._name in _variables:
-            print(info(self._variable))
+            print(info(_variables[self._variable._name]))
         else:
             print(info("Variable '%s' is undefined." % self._variable._name))
             self._variable.value = input(ask("Please specify the value of '%s'!\n" % self._variable._name))
