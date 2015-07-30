@@ -59,3 +59,29 @@ class Copy(Doable):
             shutil.copytree(from_path, to_path)
         else:
             print(error("%s is neither a file nor directory." % as_proper(from_path)))
+
+class CollectFiles(Doable):
+    def __init__(self, root, pattern, to_path):
+        self._root = root
+        self._pattern = pattern
+        self._to_path = to_path
+
+    def _do(self, *args, **kvargs):
+        root = CleverString(self._root).value
+        pattern = self._pattern
+        to_path = CleverString(self._to_path).value
+        to_copy = []
+        for top, dirs, files in os.walk(root):
+            for f in files:
+                path = os.path.join(top, f)
+                if re.search(pattern, path):
+                    to_copy.append(path)
+                    print(info("%s is matching to %s" % (as_proper(path), as_proper(pattern))))
+        try:
+            shutil.rmtree(to_path)
+        except FileNotFoundError:
+            pass
+        os.makedirs(to_path)
+        for f in to_copy:
+            shutil.copy(f, to_path)
+            print(info("Copy %s to %s" % (as_proper(f),as_proper(to_path))))
