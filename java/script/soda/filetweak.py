@@ -3,6 +3,7 @@ from .structure import *
 from .need import *
 import os
 import re
+import shutil
 
 print(info(as_proper("File tweaking")+" features loaded."))
 
@@ -37,3 +38,24 @@ class Restore(Doable):
             print(info("%s is restored from %s." % (as_proper(true_name), as_proper(back_up))))
         else:
             print(info("Missing back-up for %s, looking for %s." %(as_proper(true_name), as_proper(back_up))))
+
+class Copy(Doable):
+    def __init__(self, from_path, to_path):
+        self._from_path = from_path
+        self._to_path = to_path
+
+    def _do(self, *args, **kvargs):
+        from_path = CleverString(self._from_path).value
+        to_path = CleverString(self._to_path).value
+        if os.path.isfile(from_path):
+            print(info("Copy file %s to %s." % (as_proper(from_path), as_proper(to_path))))
+            shutil.copy(from_path, to_path)
+        elif os.path.isdir(from_path):
+            print(info("Copy directory tree %s to %s." % (as_proper(from_path), as_proper(to_path))))
+            try:
+                shutil.rmtree(to_path)
+            except FileNotFoundError:
+                pass
+            shutil.copytree(from_path, to_path)
+        else:
+            print(error("%s is neither a file nor directory." % as_proper(from_path)))

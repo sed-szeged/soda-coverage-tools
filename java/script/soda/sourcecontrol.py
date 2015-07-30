@@ -2,7 +2,7 @@ import git #http://gitpython.readthedocs.org/en/latest/tutorial.html
 import abc
 from .feedback import *
 
-print(info(as_proper("Source control")+" support is laoded."))
+print(info(as_proper("Source control")+" support is loaded."))
 
 class SCM(object, metaclass=abc.ABCMeta):
     def __init__(self, repo):
