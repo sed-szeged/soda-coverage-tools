@@ -85,3 +85,33 @@ class CollectFiles(Doable):
         for f in to_copy:
             shutil.copy(f, to_path)
             print(info("Copy %s to %s" % (as_proper(f),as_proper(to_path))))
+            
+class MergeFiles(Doable):
+    def __init__(self, outfile, *filenames):
+        self._outfile = outfile
+        self._filenames = filenames
+
+    def _do(self, *args, **kvargs):
+        outfile = CleverString(self._outfile).value
+        filenames = self._filenames
+        with open(outfile, 'w') as out:
+            for f in filenames:
+                with open(f) as infile:
+                    for line in infile:
+                        out.write(line + "\r\n")
+                print(info("File %s merged into %s" % (as_proper(f),as_proper(outfile))))
+        print(info("File merge completed. Result: %s" % (as_proper(outfile))))
+        
+class MergeFilesInDirectory(Doable):
+    def __init__(self, outfile, dir):
+        self._outfile = outfile
+        self._dir = dir
+
+    def _do(self, *args, **kvargs):
+        outfile = self._outfile
+        dir = CleverString(self._dir).value
+        paths = []
+        for top, dirs, files in os.walk(dir):
+            for f in files:
+                paths.append(os.path.join(top, f))
+        MergeFiles(outfile, *paths).do()

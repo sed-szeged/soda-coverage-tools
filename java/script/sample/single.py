@@ -10,6 +10,6 @@ Phase('run tests',
     AddSodaProfileWithJUnitTo('${pom_path}'),
     TransformCoverageData('${source_path}'),
     Restore('${pom_path}'),
-    CollectFiles(pj('${source_path}'), 'target/jacoco/coverage/xml', pj('${output_path}', 'raw-coverage-data', 'xml')),
+    CollectFiles(pj('${source_path}'), 'target/jacoco/coverage/xml', pj('${output_path}', 'raw-coverage-data', 'coverage', 'xml')),
     CreateCovarageMatrix(pj('${output_path}','raw-coverage-data','coverage','xml'), MatrixGranuality.method, pj('${output_path}', 'coverage-matrix'))
 ).do()
