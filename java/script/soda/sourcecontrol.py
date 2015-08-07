@@ -35,5 +35,9 @@ class GitRepo(SCM):
 
     def clone(self, path):
         repo = CleverString(self._repo).value
-        git.Repo.clone_from(repo, path)
-        print(info("Repository cloned from %s to %s" % (as_proper(self._repo),as_proper(path))))
+        try:
+            git.Repo.clone_from(repo, path)
+            print(info("Repository cloned from %s to %s" % (as_proper(self._repo),as_proper(path))))
+        except:
+            print(error("Failed to clone repository from %s" % (as_proper(self._repo))))
+            pass

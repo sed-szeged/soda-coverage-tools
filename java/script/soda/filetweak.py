@@ -4,6 +4,7 @@ from .need import *
 import os
 import re
 import shutil
+import glob2
 
 print(info(as_proper("File tweaking")+" features loaded."))
 
@@ -98,7 +99,7 @@ class MergeFiles(Doable):
             for f in filenames:
                 with open(f) as infile:
                     for line in infile:
-                        out.write(line + "\r\n")
+                        out.write(line)
                 print(info("File %s merged into %s" % (as_proper(f),as_proper(outfile))))
         print(info("File merge completed. Result: %s" % (as_proper(outfile))))
         
@@ -113,5 +114,17 @@ class MergeFilesInDirectory(Doable):
         paths = []
         for top, dirs, files in os.walk(dir):
             for f in files:
+                path = os.path.join(top, f)
                 paths.append(os.path.join(top, f))
+        MergeFiles(outfile, *paths).do()
+        
+class MergeMatchingFiles(Doable):
+    def __init__(self, outfile, pattern):
+        self._outfile = outfile
+        self._pattern = pattern
+
+    def _do(self, *args, **kvargs):
+        outfile = self._outfile
+        pattern = CleverString(self._pattern).value
+        paths = glob2.glob(pattern)
         MergeFiles(outfile, *paths).do()
