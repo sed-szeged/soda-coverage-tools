@@ -3,6 +3,12 @@ import os
 
 pj = os.path.join
 
+Phase('checkout',
+    Need(aString('git_url')),
+    Need(aString('repository_path')),
+    From(GitRepo('${git_url}')).to('${repository_path}')
+).do()
+
 Phase('run tests',
     Need(aString('source_path')),
     Need(aString('pom_path')),
