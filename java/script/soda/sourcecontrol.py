@@ -22,9 +22,13 @@ class SCM(object, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def all(self, path, version):
         pass
-        
+
     @abc.abstractmethod
     def last(self, path, version, n):
+        pass
+        
+    @abc.abstractmethod
+    def between(self, path, version, after, before):
         pass
 
 class From(Doable):
@@ -50,6 +54,13 @@ class From(Doable):
         print(info("Iterating through last %s repository versions." % (as_proper(n))))
         path = CleverString(self._path).value
         for commit in self._scm.last(path, self._version, n):
+            print(info("Checkout to version: %s" % (as_proper(commit))))
+            yield commit
+            
+    def between(self, after, before):
+        print(info("Iterating through repository versions between %s and %s." % (as_proper(after), as_proper(before))))
+        path = CleverString(self._path).value
+        for commit in self._scm.between(path, self._version, after, before):
             print(info("Checkout to version: %s" % (as_proper(commit))))
             yield commit
 
@@ -83,28 +94,38 @@ class GitRepo(SCM):
         except FileNotFoundError:
             pass
         self._repoObject = git.Repo.clone_from(repo, path)
-        
+
     def all(self, path, version):
         self.checkout(path, version)
         commits = self.getCommits(self._repoObject.git)
         return self.iterateCommits(commits)
-        
+
     def last(self, path, version, n):
         self.checkout(path, version)
         commits = self.getCommits(self._repoObject.git, n)
         return self.iterateCommits(commits)
-            
+
+    def between(self, path, version, after, before):
+        self.checkout(path, version)
+        commits = self.getCommits(self._repoObject.git, after = after, before = before)
+        return self.iterateCommits(commits)
+
     def iterateCommits(self, commits):
         for commit in commits:
             self._checkout(commit)
             self._repoObject.git.clean('-xfd')
             yield commit
             
-    def getCommits(self, git, n = None):
+    def getCommits(self, git, n = None, after = None, before = None):
         params = []
         params.append('--pretty=format:"%H"')
         if n:
             params.append('-n ' + str(n))
+        if after:
+            params.append('--after=' + after)
+        if before:
+            params.append('--before=' + before)
         info = git.log(params)
         commits = info.strip('"').split('"\n"')
+        print(commits)
         return commits

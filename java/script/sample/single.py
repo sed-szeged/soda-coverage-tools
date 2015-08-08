@@ -11,7 +11,7 @@ Phase('load arguments',
     Need(aString('output_path'))
 ).do()
 
-for commit in From(GitRepo('${git_url}')).to('${repository_path}').checkout('master').last(10):
+for commit in From(GitRepo('${git_url}')).to('${repository_path}').checkout('master').between("2015-07-01", "2015-07-05"):
     commitStr = str(commit)
     Phase('run tests',
         AddSodaProfileWithJUnitTo('${pom_path}'),
