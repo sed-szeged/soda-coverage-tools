@@ -6,4 +6,4 @@ from .sourcecontrol import *
 from .maven_cover import *
 from .soda import *
 
-print(info("SoDA support is now aviable!"))
+print(info("SoDA support is now available!"))

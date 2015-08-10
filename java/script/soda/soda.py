@@ -15,3 +15,11 @@ class CreateCovarageMatrix(Call):
     def _do(self, *args, **kvargs):
         Need(aString('soda_rawDataReader_path')).do()
         super()._do(*args, **kvargs)
+
+class CreateResultsMatrix(Call):
+    def __init__(self, dir, reader, output_path):
+        super().__init__('${soda_rawDataReader_path}/rawDataReader -t results -m %s -p %s -o %s' % (reader, dir, output_path))
+
+    def _do(self, *args, **kvargs):
+        Need(aString('soda_rawDataReader_path')).do()
+        super()._do(*args, **kvargs)

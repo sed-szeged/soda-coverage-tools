@@ -83,5 +83,12 @@ class CollectFiles(Doable):
             pass
         os.makedirs(to_path)
         for f in to_copy:
-            shutil.copy(f, to_path)
+            prop_file = os.path.join(to_path, os.path.basename(f))
+            if os.path.exists(prop_file): # append to an existing file if already exists
+                with open(prop_file, 'a') as outfile:
+                    with open(f) as infile:
+                        for line in infile:
+                            outfile.write(line)
+            else:
+                shutil.copy(f, to_path)
             print(info("Copy %s to %s" % (as_proper(f),as_proper(to_path))))
