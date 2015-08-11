@@ -4,6 +4,7 @@ from .need import *
 import os
 import re
 import shutil
+import glob2
 
 print(info(as_proper("File tweaking")+" features loaded."))
 
@@ -92,3 +93,65 @@ class CollectFiles(Doable):
             else:
                 shutil.copy(f, to_path)
             print(info("Copy %s to %s" % (as_proper(f),as_proper(to_path))))
+
+# TODO remove concurrent implementations below after single.py is properly updated
+class CollectFiles2(Doable): 
+    def __init__(self, root, pattern, to_path):
+        self._root = root
+        self._pattern = pattern
+        self._to_path = to_path
+
+    def _do(self, *args, **kvargs):
+        root = CleverString(self._root).value
+        pattern = CleverString(self._pattern).value
+        to_path = CleverString(self._to_path).value
+        to_copy = glob2.glob(pattern)
+        try:
+            shutil.rmtree(to_path)
+        except FileNotFoundError:
+            pass
+        for f in to_copy:
+            shutil.copytree(f, to_path)
+            print(info("Copy %s to %s" % (as_proper(f),as_proper(to_path))))
+            
+class MergeFiles(Doable):
+    def __init__(self, outfile, *filenames):
+        self._outfile = outfile
+        self._filenames = filenames
+
+    def _do(self, *args, **kvargs):
+        outfile = CleverString(self._outfile).value
+        filenames = self._filenames
+        with open(outfile, 'w') as out:
+            for f in filenames:
+                with open(f) as infile:
+                    for line in infile:
+                        out.write(line)
+                print(info("File %s merged into %s" % (as_proper(f),as_proper(outfile))))
+        print(info("File merge completed. Result: %s" % (as_proper(outfile))))
+        
+class MergeFilesInDirectory(Doable):
+    def __init__(self, outfile, dir):
+        self._outfile = outfile
+        self._dir = dir
+
+    def _do(self, *args, **kvargs):
+        outfile = self._outfile
+        dir = CleverString(self._dir).value
+        paths = []
+        for top, dirs, files in os.walk(dir):
+            for f in files:
+                path = os.path.join(top, f)
+                paths.append(os.path.join(top, f))
+        MergeFiles(outfile, *paths).do()
+        
+class MergeMatchingFiles(Doable):
+    def __init__(self, outfile, pattern):
+        self._outfile = outfile
+        self._pattern = pattern
+
+    def _do(self, *args, **kvargs):
+        outfile = self._outfile
+        pattern = CleverString(self._pattern).value
+        paths = glob2.glob(pattern)
+        MergeFiles(outfile, *paths).do()
