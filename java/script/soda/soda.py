@@ -8,18 +8,16 @@ class MatrixGranuality(object):
     class_ = "class"
     method = "method"
 
-class CreateCovarageMatrix(Call):
-    def __init__(self, xmls, granuality, output_path):
-        super().__init__('${soda_rawDataReader_path}/rawDataReader -t coverage -m jacoco-java -p %s -g %s -o %s' % (xmls, granuality, output_path))
+class CreateCovarageMatrix(CallRawDataReader):
+    def __init__(self, path, granularity, output):
+        super().__init__('coverage', 'jacoco-java', granularity, path, output)
 
     def _do(self, *args, **kvargs):
-        Need(aString('soda_rawDataReader_path')).do()
         super()._do(*args, **kvargs)
 
-class CreateResultsMatrix(Call):
-    def __init__(self, dir, reader, output_path):
-        super().__init__('${soda_rawDataReader_path}/rawDataReader -t results -m %s -p %s -o %s' % (reader, dir, output_path))
+class CreateResultsMatrix(CallRawDataReader):
+    def __init__(self, path, reader, output):
+        super().__init__('results', reader, MatrixGranuality.method, path, output)
 
     def _do(self, *args, **kvargs):
-        Need(aString('soda_rawDataReader_path')).do()
         super()._do(*args, **kvargs)

@@ -22,9 +22,9 @@ class AddSodaProfileWithJUnitTo(Doable):
         insert(soda_coverage_profile_junit, CleverString(self._pom).value, '</profiles>')
 
 class TransformCoverageData(Call):
-    def __init__(self, src):
+    def __init__(self, src, goals='clean test'):
         #super().__init__('pwd')
-        super().__init__('mvn3.3 clean test hu.sed.soda.tools:soda-maven-plugin:report -Psoda-coverage')
+        super().__init__('mvn3.3 %s hu.sed.soda.tools:soda-maven-plugin:report -Psoda-coverage' % (goals))
         self._src = src
 
     def _do(self, *args, **kvargs):
