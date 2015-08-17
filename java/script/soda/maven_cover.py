@@ -1,8 +1,8 @@
 from .maven_cover_res import *
 from .structure import *
-from .filetweak import *
 from .need import *
 from .call import *
+from .filetweak import *
 import os
 
 print(info(as_proper("Soda Maven Coverage")+" support is loaded."))

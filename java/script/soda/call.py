@@ -1,7 +1,7 @@
 import subprocess as sp #https://docs.python.org/3.4/library/subprocess.html
+from .need import *
 from .feedback import *
 from .structure import *
-from .need import *
 
 print(info(as_proper("Commandline call") + " features are loaded."))
 
