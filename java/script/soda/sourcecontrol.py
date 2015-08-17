@@ -46,21 +46,24 @@ class From(Doable):
     def all(self):
         print(info("Iterating through repository versions."))
         path = CleverString(self._path).value
-        for commit in self._scm.all(path, self._version):
+        version = CleverString(self._version).value
+        for commit in self._scm.all(path, version):
             print(info("Checkout to version: %s" % (as_proper(commit))))
             yield commit
             
     def last(self, n = 1):
         print(info("Iterating through last %s repository versions." % (as_proper(n))))
         path = CleverString(self._path).value
-        for commit in self._scm.last(path, self._version, n):
+        version = CleverString(self._version).value
+        for commit in self._scm.last(path, version, n):
             print(info("Checkout to version: %s" % (as_proper(commit))))
             yield commit
             
     def between(self, after, before):
         print(info("Iterating through repository versions between %s and %s." % (as_proper(after), as_proper(before))))
         path = CleverString(self._path).value
-        for commit in self._scm.between(path, self._version, after, before):
+        version = CleverString(self._version).value
+        for commit in self._scm.between(path, version, after, before):
             print(info("Checkout to version: %s" % (as_proper(commit))))
             yield commit
 
@@ -68,10 +71,11 @@ class From(Doable):
         try:
             path = CleverString(self._path).value
             repo = CleverString(self._scm.repo).value
-            self._scm.checkout(path, self._version)
+            version = CleverString(self._version).value
+            self._scm.checkout(path, version)
             print(info("Repository cloned from %s to %s" % (as_proper(repo),as_proper(path))))
             if self._version:
-                print(info("Version: %s" % (as_proper(self._version))))
+                print(info("Version: %s" % (as_proper(version))))
         except:
             print(error("Failed to clone repository from %s" % (as_proper(repo))))
 

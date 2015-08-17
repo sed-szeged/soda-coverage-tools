@@ -61,6 +61,20 @@ class Copy(Doable):
         else:
             print(error("%s is neither a file nor directory." % as_proper(from_path)))
 
+class CopyMatching(Doable):
+    def __init__(self, from_path, to_path, pattern):
+        self._from_path = from_path
+        self._to_path = to_path
+        self._pattern = pattern
+
+    def _do(self, *args, **kvargs):
+        from_path = CleverString(self._from_path).value
+        to_path = CleverString(self._to_path).value
+        pattern = CleverString(self._pattern).value
+        matching_files = glob2.glob(from_path + '/' + pattern)
+        for p in matching_files:
+            Copy(p, p.replace(from_path, to_path)).do()
+
 class CollectFiles(Doable):
     def __init__(self, root, pattern, to_path):
         self._root = root

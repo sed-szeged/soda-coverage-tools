@@ -68,6 +68,15 @@ class Need(Doable):
             self._variable.value = input(ask("Please specify the value of '%s'!\n" % self._variable._name))
             _variables[self._variable._name] = (self._variable)
 
+class SetVariable(Doable):
+    def __init__(self, variable, value):
+        self._variable = variable
+        self._value = value
+
+    def _do(self):
+        global _variables
+        self._variable.value = self._value
+        _variables[self._variable._name] = (self._variable)
 
 class CleverString(str):
     def __init__(self, value):
@@ -78,8 +87,9 @@ class CleverString(str):
     def value(self):
         global _variables
         processed = self._value
-        for name in _variables:
-            variable = _variables[name]
-            processed = variable.substitute(processed)
-        print(info('resolved as: ' + processed))
+        while '${' in processed:
+            for name in _variables:
+                variable = _variables[name]
+                processed = variable.substitute(processed)
+            print(info('resolved as: ' + processed))
         return processed
