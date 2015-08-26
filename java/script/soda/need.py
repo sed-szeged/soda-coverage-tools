@@ -20,7 +20,7 @@ class Variable(object, metaclass=abc.ABCMeta):
 
 
     def substitute(self, text):
-        return text.replace(self._pattern, self._value)
+        return text.replace(str(self._pattern), str(self._value))
 
 
     def __str__(self):

@@ -60,10 +60,12 @@ class From(Doable):
             yield commit
             
     def between(self, after, before):
-        print(info("Iterating through repository versions between %s and %s." % (as_proper(after), as_proper(before))))
+        _after = CleverString(after).value
+        _before = CleverString(before).value
+        print(info("Iterating through repository versions between %s and %s." % (as_proper(_after), as_proper(_before))))
         path = CleverString(self._path).value
         version = CleverString(self._version).value
-        for commit in self._scm.between(path, version, after, before):
+        for commit in self._scm.between(path, version, _after, _before):
             print(info("Checkout to version: %s" % (as_proper(commit))))
             yield commit
 

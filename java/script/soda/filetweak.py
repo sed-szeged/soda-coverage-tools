@@ -8,6 +8,33 @@ import glob2
 
 print(info(as_proper("File tweaking")+" features loaded."))
 
+def pj(*args):
+    return os.path.join(*[str(a) for a in args])
+
+def folder(*name):
+    cpath = CleverPath()
+    cpath.extend(name)
+    return cpath
+
+f = folder
+
+class CleverPath(list):
+    def __str__(self):
+        return os.path.join(*[str(a) for a in self])
+
+    def go(self, name):
+        _new = CleverPath()
+        _new.extend(self[:])
+        if name is list:
+            _new.extend(name)
+        else:
+            _new.append(name)
+        return _new
+
+    def __truediv__(self, other):
+        return self.go(other)
+
+
 def insert(what, into, where):
     with open(into, 'r') as f:
         contents = f.readlines()
@@ -32,7 +59,7 @@ class Restore(Doable):
         self._original_path = original_path
 
     def _do(self, *args, **kvargs):
-        back_up = CleverString(self._original_path+".original").value
+        back_up = CleverString(str(self._original_path)+".original").value
         true_name = CleverString(self._original_path).value
         if os.path.isfile(back_up):
             os.rename(back_up, true_name)
@@ -78,7 +105,7 @@ class CopyMatching(Doable):
 class CollectFiles(Doable):
     def __init__(self, root, pattern, to_path):
         self._root = root
-        self._pattern = pattern
+        self._pattern = str(pattern)
         self._to_path = to_path
 
     def _do(self, *args, **kvargs):
