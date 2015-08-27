@@ -13,7 +13,7 @@ class SCM(object, metaclass=abc.ABCMeta):
 
     @property
     def repo(self):
-        return self._repo
+        return CleverString(self._repo).value
 
     @abc.abstractmethod
     def checkout(self, path, version):
@@ -65,8 +65,17 @@ class From(Doable):
         print(info("Iterating through repository versions between %s and %s." % (as_proper(_after), as_proper(_before))))
         path = CleverString(self._path).value
         version = CleverString(self._version).value
-        for commit in self._scm.between(path, version, _after, _before):
+        global bars
+        bar = ProgressBar(name='checkout from %s' % self._scm.repo)
+        bar.value = 0
+        bars.append(bar)
+        commits = list(self._scm.between(path, version, _after, _before))
+        count = len(commits)
+        i = 0
+        for commit in commits:
             print(info("Checkout to version: %s" % (as_proper(commit))))
+            bar.value = i / count
+            i += 1
             yield commit
 
     def _do(self, *args, **kvargs):

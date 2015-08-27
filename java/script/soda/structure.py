@@ -36,6 +36,10 @@ class Phase(Doable):
 
 
     def _do(self):
+        global bars
+        bar = ProgressBar(name=self._name)
+        bar.value = 0
+        bars.append(bar)
         for i in range(len(self._steps)):
             step = self._steps[i]
             print(info("Do step#%d {" % i))
@@ -43,4 +47,6 @@ class Phase(Doable):
             step.do()
             undent()
             print(info("} step#%d done." % i))
-        pass
+            bar.value = i / len(self._steps)
+            bar.draw()
+        bars.remove(bar)
