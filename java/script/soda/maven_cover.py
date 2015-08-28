@@ -19,6 +19,7 @@ class AddSodaProfileTo(Doable):
     def _do(self):
         self._detectTestingFrameWork()
         self._addProfile()
+        self._tweakPoms()
 
     def _addProfile(self):
         rootpom = self._getRootPomPath()
@@ -60,6 +61,21 @@ class AddSodaProfileTo(Doable):
                 self._profile = soda_coverage_profile_junit
                 print(info(as_proper("Detected jUnit testing framework.")))
                 return
+
+    def _tweakPoms(self):
+        # we have to fix argLine tags
+        for path in self._poms:
+            backup(path)
+            tree = ET.parse(path)
+            root = tree.getroot()
+            nodes = root.findall(".//mvn:configuration/mvn:argLine", ns)
+            if not nodes:
+                continue
+            for elem in nodes:
+                if elem.text.startswith("${argLine} "):
+                    continue
+                elem.text = "${argLine} " + elem.text
+            tree.write(path)
 
 class TransformCoverageData(Call):
     def __init__(self, src, goals='clean test'):
