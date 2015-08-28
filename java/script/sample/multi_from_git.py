@@ -10,7 +10,6 @@ Phase('load arguments',
     Need(aString('from')),
     Need(aString('to')),
     Need(aString('source_path')),
-    Need(aString('pom_path')),
     Need(aString('output_path'))
 ).do()
 
@@ -18,9 +17,9 @@ revision_number = 0
 for commit in From(GitRepo('${git_url}')).to('${repository_path}').checkout('master').between('${from}', '${to}'):
     revision_number += 1
     Phase('run tests',
-        AddSodaProfileWithJUnitTo('${pom_path}'),
+        AddSodaProfileTo('${source_path}'),
         TransformCoverageData('${source_path}'),
-        Restore('${pom_path}'),
+        Restore('${source_path}'),
         CollectFiles(
             '${source_path}',
             'target/jacoco/coverage/xml',

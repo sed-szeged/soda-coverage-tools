@@ -4,22 +4,62 @@ from .need import *
 from .call import *
 from .filetweak import *
 import os
+import xml.etree.ElementTree as ET
 
 print(info(as_proper("Soda Maven Coverage")+" support is loaded."))
 
+ns = { 'mvn': 'http://maven.apache.org/POM/4.0.0' }
+
 class AddSodaProfileTo(Doable):
-    def __init__(self, pom):
-        self._pom = pom
+    def __init__(self, src):
+        self._src = CleverString(src).value
+        self._poms = collectFilePaths(self._src, "pom.xml")
+        ET.register_namespace('', 'http://maven.apache.org/POM/4.0.0')
 
     def _do(self):
-        insert(soda_coverage_profile, CleverString(self._pom).value, '</profiles>')
+        self._detectTestingFrameWork()
+        self._addProfile()
 
-class AddSodaProfileWithJUnitTo(Doable):
-    def __init__(self, pom):
-        self._pom = pom
+    def _addProfile(self):
+        rootpom = self._getRootPomPath()
+        backup(rootpom)
+        tree = ET.parse(rootpom)
+        root = tree.getroot()
+        nodes = root.findall("./mvn:profiles", ns)
+        if not nodes:
+            # we have to insert a new profiles tag
+            profiles = ET.SubElement(root, 'profiles')
+        else:
+            profiles = nodes[0]
+            # detect if we already replaced it
+            sodaprofile = profiles.findall("./mvn:profile[mvn:id='soda-coverage']", ns)
+            if sodaprofile:
+                print(info(as_proper("No changes made with profiles.")))
+                return
 
-    def _do(self):
-        insert(soda_coverage_profile_junit, CleverString(self._pom).value, '</profiles>')
+        print(info(as_proper("SoDA coverage profile injected.")))
+        profiles.append(ET.fromstring(self._profile)) # selected during detection
+        tree.write(rootpom)
+
+    def _getRootPomPath(self):
+        for path in self._poms:
+            if os.path.dirname(path) == self._src:
+                return path
+
+    def _detectTestingFrameWork(self):
+        for path in self._poms:
+            tree = ET.parse(path)
+            root = tree.getroot()
+            res = root.findall(".//mvn:dependency[mvn:artifactId='testng']", ns)
+            if res:
+                self._profile = soda_coverage_profile
+                print(info(as_proper("Detected TestNG testing framework.")))
+                return
+            res = root.findall(".//mvn:dependency[mvn:artifactId='junit']", ns)
+            if res:
+                self._profile = soda_coverage_profile_junit
+                print(info(as_proper("Detected jUnit testing framework.")))
+                return
 
 class TransformCoverageData(Call):
     def __init__(self, src, goals='clean test'):

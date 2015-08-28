@@ -7,15 +7,14 @@ import os
 Phase('load arguments',
     Need(aString('git_url')),
     Need(aString('source_path')),
-    Need(aString('pom_path')),
     Need(aString('output_path'))
 ).do()
 
 Phase('run tests',
     From(GitRepo('${git_url}')).to('${source_path}').checkout('HEAD'),
-    AddSodaProfileWithJUnitTo('${pom_path}'),
+    AddSodaProfileTo('${source_path}'),
     TransformCoverageData('${source_path}'),
-    Restore('${pom_path}'),
+    Restore('${source_path}'),
     CollectFiles('${source_path}', f('target')/'jacoco'/'coverage'/'xml', f('${output_path}')/'raw-coverage-data'/'xml'),
     CreateCovarageMatrix(f('${output_path}')/'raw-coverage-data'/'xml', MatrixGranuality.method, f('${output_path}')/'coverage-matrix'),
     CollectFiles('${source_path}', f('target')/'jacoco'/'0'/'TestResults.r0', f('${output_path}')/'raw-test-data'),
