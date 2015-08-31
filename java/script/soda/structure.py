@@ -1,6 +1,7 @@
 import abc
 import pdb
 from .feedback import *
+from itertools import tee
 
 print(info(as_proper("Logical structure")+" is loaded."))
 
@@ -50,3 +51,8 @@ class Phase(Doable):
             bar.value = i / len(self._steps)
             bar.draw()
         bars.remove(bar)
+
+def pairwise(iterable):
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)

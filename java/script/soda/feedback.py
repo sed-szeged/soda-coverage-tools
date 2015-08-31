@@ -80,5 +80,3 @@ def renderProgress():
 
 progressRender = threading.Thread(target=renderProgress, args=())
 progressRender.start()
-
-print(info(as_proper("Feadback") + " feautres are loaded."))

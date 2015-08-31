@@ -102,6 +102,18 @@ class CopyMatching(Doable):
         for p in matching_files:
             Copy(p, p.replace(from_path, to_path)).do()
 
+class DeleteFolder(Doable):
+    def __init__(self, folder):
+        self._folder = folder
+
+    def _do(self, *args, **kvargs):
+        _folder = CleverString(self._folder).value
+        print(info("Delete %s" % (as_proper(_folder))))
+        try:
+            shutil.rmtree(_folder)
+        except FileNotFoundError:
+            pass
+
 class CollectFiles(Doable):
     def __init__(self, root, pattern, to_path):
         self._root = root

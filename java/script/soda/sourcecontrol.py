@@ -47,9 +47,19 @@ class From(Doable):
         print(info("Iterating through repository versions."))
         path = CleverString(self._path).value
         version = CleverString(self._version).value
-        for commit in self._scm.all(path, version):
+        global bars
+        bar = ProgressBar(name='checkout from %s' % self._scm.repo)
+        bar.value = 0
+        bars.append(bar)
+        commits = list(self._scm.all(path, version))
+        count = len(commits)
+        i = 0
+        for commit in commits:
             print(info("Checkout to version: %s" % (as_proper(commit))))
+            bar.value = i / count
+            i += 1
             yield commit
+        bars.remove(bar)
             
     def last(self, n = 1):
         print(info("Iterating through last %s repository versions." % (as_proper(n))))
@@ -77,6 +87,7 @@ class From(Doable):
             bar.value = i / count
             i += 1
             yield commit
+        bars.remove(bar)
 
     def _do(self, *args, **kvargs):
         try:
