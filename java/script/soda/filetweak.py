@@ -54,18 +54,33 @@ def insert(what, into, where):
     os.rename(into, into+".original")
     os.rename(into+".tmp", into)
 
+def backup(what):
+    dst = what + '.original'
+    if os.path.exists(dst):
+        return
+    shutil.copy(what, dst)
+
+def collectFilePaths(dirName, fileName):
+    paths = []
+    for root, dirs, files in os.walk(dirName):
+        for name in files:
+            if fileName == name:
+                paths.append(os.path.join(root, name))
+    return paths
+
 class Restore(Doable):
-    def __init__(self, original_path):
-        self._original_path = original_path
+    def __init__(self, path, fileName='pom.xml'):
+        self._paths = collectFilePaths(CleverString(path).value, fileName)
 
     def _do(self, *args, **kvargs):
-        back_up = CleverString(str(self._original_path)+".original").value
-        true_name = CleverString(self._original_path).value
-        if os.path.isfile(back_up):
-            os.rename(back_up, true_name)
-            print(info("%s is restored from %s." % (as_proper(true_name), as_proper(back_up))))
-        else:
-            print(info("Missing back-up for %s, looking for %s." %(as_proper(true_name), as_proper(back_up))))
+        for path in self._paths:
+            back_up = CleverString(str(path)+".original").value
+            true_name = CleverString(path).value
+            if os.path.isfile(back_up):
+                os.rename(back_up, true_name)
+                print(info("%s is restored from %s." % (as_proper(true_name), as_proper(back_up))))
+            else:
+                print(info("Missing back-up for %s, looking for %s." %(as_proper(true_name), as_proper(back_up))))
 
 class Copy(Doable):
     def __init__(self, from_path, to_path):

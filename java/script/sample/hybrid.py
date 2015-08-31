@@ -20,10 +20,9 @@ Phase('run tests',
     Copy('${mom_path}', '${child_path}'),
     CopyMatching('${dad_path}', '${child_path}', f('**')/'src'/'test'),
     Need(aString('source_path')),
-    Need(aString('pom_path')),
-    AddSodaProfileTo(f('${child_path}')/'${pom_path}'),
+    AddSodaProfileTo(f('${child_path}')/'${source_path}'),
     TransformCoverageData(f('${child_path}')/'${source_path}'),
-    Restore(f('${child_path}')/'${pom_path}')
+    Restore(f('${child_path}')/'${source_path}')
 ).do()
 
 Phase('create results',
