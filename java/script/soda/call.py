@@ -14,10 +14,14 @@ class Call(Doable):
         self._command = command
 
     def _do(self, *args, **kvargs):
+        global settings
         command = CleverString(self._command).value
         #command = CleverString(self._command).value.split(self._splitby)
         print(info('executing: %s' % command))
-        sp.call(command, shell=True, *args, **kvargs)
+        if settings.quite:
+            sp.call(command, shell=True, stdout=None, stderr=None, *args, **kvargs)
+        else:
+            sp.call(command, shell=True, *args, **kvargs)
 
 class CallRawDataReader(Call):
     def __init__(self, readerType, mode, granularity, path, output):

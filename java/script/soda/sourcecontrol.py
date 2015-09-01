@@ -7,6 +7,11 @@ from .need import *
 
 print(info(as_proper("Source control")+" support is loaded."))
 
+class Settings(object):
+    quite = True
+
+settings = Settings()
+
 class SCM(object, metaclass=abc.ABCMeta):
     def __init__(self, repo):
         self._repo = repo

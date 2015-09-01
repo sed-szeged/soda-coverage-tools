@@ -12,11 +12,11 @@ ns = { 'mvn': 'http://maven.apache.org/POM/4.0.0' }
 
 class AddSodaProfileTo(Doable):
     def __init__(self, src):
-        self._src = CleverString(src).value
-        self._poms = collectFilePaths(self._src, "pom.xml")
+        self._src = src
         ET.register_namespace('', 'http://maven.apache.org/POM/4.0.0')
 
     def _do(self):
+        self._poms = collectFilePaths(CleverString(self._src).value, "pom.xml")
         self._detectTestingFrameWork()
         self._addProfile()
         self._tweakPoms()
