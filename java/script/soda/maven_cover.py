@@ -44,7 +44,7 @@ class AddSodaProfileTo(Doable):
 
     def _getRootPomPath(self):
         for path in self._poms:
-            if os.path.dirname(path) == self._src:
+            if os.path.dirname(path) == CleverString(self._src).value:
                 return path
 
     def _detectTestingFrameWork(self):
