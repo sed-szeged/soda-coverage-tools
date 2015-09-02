@@ -71,9 +71,10 @@ def collectFilePaths(dirName, fileName):
 class Restore(Doable):
     def __init__(self, path, fileName='pom.xml'):
         self._path = path
+        self._fileName = fileName
 
     def _do(self, *args, **kvargs):
-        self._paths = collectFilePaths(CleverString(self._path).value, fileName)
+        self._paths = collectFilePaths(CleverString(self._path).value, self._fileName)
         for path in self._paths:
             back_up = CleverString(str(path)+".original").value
             true_name = CleverString(path).value

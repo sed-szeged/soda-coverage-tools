@@ -5,6 +5,7 @@ from .call import *
 from .filetweak import *
 import os
 import xml.etree.ElementTree as ET
+import re
 
 print(info(as_proper("Soda Maven Coverage")+" support is loaded."))
 
@@ -51,16 +52,22 @@ class AddSodaProfileTo(Doable):
         for path in self._poms:
             tree = ET.parse(path)
             root = tree.getroot()
-            res = root.findall(".//mvn:dependency[mvn:artifactId='testng']", ns)
-            if res:
+            res = root.findall(".//mvn:dependency/mvn:artifactId", ns)
+            #TODO: send a warning if both surefire- and simple version was used.
+            isJUnit = any([re.match(r'((surefire-)?junit\d*)', r.text) for r in res])
+            isTestNG = any([re.match(r'((surefire-)?testng)', r.text) for r in res])
+            if isTestNG and isJUnit:
+                raise ValueError("Multiply testing framework detected in " + path)
+            if isTestNG:
                 self._profile = soda_coverage_profile
                 print(info(as_proper("Detected TestNG testing framework.")))
                 return
-            res = root.findall(".//mvn:dependency[mvn:artifactId='junit']", ns)
-            if res:
+            elif isJUnit:
                 self._profile = soda_coverage_profile_junit
                 print(info(as_proper("Detected jUnit testing framework.")))
                 return
+            else:
+                raise ValueError("Unsupported, undetectable or missing testing framework in " + path)
 
     def _tweakPoms(self):
         # we have to fix argLine tags
