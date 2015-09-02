@@ -5,6 +5,11 @@ from itertools import tee
 
 print(info(as_proper("Logical structure")+" is loaded."))
 
+class Settings(object):
+    quite = True
+
+settings = Settings()
+
 class Doable(object, metaclass=abc.ABCMeta):
     _name = ''
 
@@ -34,7 +39,6 @@ class Phase(Doable):
     @property
     def name(self):
         return self._name
-
 
     def _do(self):
         global bars
