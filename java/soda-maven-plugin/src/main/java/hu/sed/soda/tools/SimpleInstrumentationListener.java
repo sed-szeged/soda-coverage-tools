@@ -5,20 +5,25 @@ import org.junit.runner.Description;
 import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
+import org.testng.ITestContext;
 import org.testng.ITestListener;
+import org.testng.ITestResult;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
-public class SimpleInstrumentationListener extends RunListener {
+public class SimpleInstrumentationListener extends RunListener implements ITestListener {
 
-    private static final Logger LOGGER = Logger.getLogger(CustomTestExecutionListener.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(SimpleInstrumentationListener.class.getName());
 
     /**
      * Directory for coverage data.
@@ -33,16 +38,16 @@ public class SimpleInstrumentationListener extends RunListener {
     /**
      * List of tests that executed the instrumented code.
      */
-    private static List<String> coveringTests;
+    private static Set<String> coveringTests;
 
     /**
      * Initializes the output directory and the log output stream.
      */
     static {
         try {
-            coveringTests = new ArrayList<>();
+            coveringTests = new HashSet<>();
 
-            outputDirectory = Constants.COVERAGE_DIR.toFile();
+            outputDirectory = new File(Constants.BASE_DIR);
 
             if (!outputDirectory.exists()) {
                 outputDirectory.mkdirs();
@@ -69,10 +74,25 @@ public class SimpleInstrumentationListener extends RunListener {
         }
     }
 
+    /**
+     * Manual instrumenter. Adds the actual test to coverage with mutation identifier.
+     *
+     * @param mutationId
+     *          Mutation identifier
+     */
+    public static void recordCoverage(String mutationId) {
+        if (actualTest != null) {
+            coveringTests.add(actualTest + ":" + mutationId);
+        }
+    }
+
+    // //////////////////////////////////////////////////////////////////////////
+    // JUnit ////////////////////////////////////////////////////////////////////
+    // //////////////////////////////////////////////////////////////////////////
 
     @Override
     public void testStarted(Description description) throws Exception {
-        actualTest = getTestName(description);
+        actualTest = TestInfo.getTestName(description);
 
         super.testStarted(description);
     }
@@ -100,33 +120,65 @@ public class SimpleInstrumentationListener extends RunListener {
 
     @Override
     public void testRunFinished(Result result) throws Exception {
-        // Dump data
-
-        PrintWriter out = new PrintWriter(new File(Constants.BASE_DIR, "TestCoverage.csv").getAbsolutePath());
-
-        for (String test : coveringTests) {
-            out.println(test);
-        }
-
-        out.close();
-
-        LOGGER.info("Simple instrumentation listener has dumped coverage data succesfully (" + coveringTests.size() + " tests were recorded).");
+        dumpResults();
 
         super.testRunFinished(result);
     }
 
-    /**
-     * Creates the name of a test based on its description.
-     *
-     * @param description
-     *          The {@link Description description} of the test.
-     * @return The name of the test.
-     */
-    private static String getTestName(Description description) {
-        StringBuilder sb = new StringBuilder();
+    // //////////////////////////////////////////////////////////////////////////
+    // TestNG ///////////////////////////////////////////////////////////////////
+    // //////////////////////////////////////////////////////////////////////////
 
-        sb.append(description.getClassName()).append('.').append(description.getMethodName());
+    @Override
+    public void onTestStart(ITestResult iTestResult) {
+        actualTest = TestInfo.getTestName(iTestResult);
+    }
 
-        return sb.toString();
+    @Override
+    public void onTestSuccess(ITestResult iTestResult) {
+        actualTest = null;
+    }
+
+    @Override
+    public void onTestFailure(ITestResult iTestResult) {
+        actualTest = null;
+    }
+
+    @Override
+    public void onTestSkipped(ITestResult iTestResult) {
+        actualTest = null;
+    }
+
+    @Override
+    public void onTestFailedButWithinSuccessPercentage(ITestResult iTestResult) {
+        actualTest = null;
+    }
+
+    @Override
+    public void onStart(ITestContext iTestContext) {
+
+    }
+
+    @Override
+    public void onFinish(ITestContext iTestContext) {
+        dumpResults();
+    }
+
+    private void dumpResults() {
+        // Dump data
+        try {
+            PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(new File(Constants.BASE_DIR, "TestCoverage.csv").getAbsolutePath(), true)));
+            for (String test : coveringTests) {
+                out.println(test);
+            }
+
+            out.close();
+
+            LOGGER.info("Simple instrumentation listener has dumped coverage data succesfully (" + coveringTests.size() + " tests were recorded).");
+        } catch (FileNotFoundException e) {
+            LOGGER.info("Simple instrumentation listener has failed: Output file not found.");
+        } catch (IOException e) {
+            LOGGER.info("Simple instrumentation listener has failed: " + e.getMessage());
+        }
     }
 }
