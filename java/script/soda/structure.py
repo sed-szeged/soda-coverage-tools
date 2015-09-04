@@ -5,8 +5,13 @@ from itertools import tee
 
 print(info(as_proper("Logical structure")+" is loaded."))
 
+class FeedbackModes(object):
+    normal = 0
+    quite = -1
+    silent = -2
+
 class Settings(object):
-    quite = True
+    mode = FeedbackModes.normal
 
 settings = Settings()
 

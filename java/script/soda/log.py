@@ -2,6 +2,7 @@ import os
 from .structure import *
 from .need import *
 import inspect
+import builtins
 
 size_of = lambda f: os.path.getsize(f)
 
@@ -48,5 +49,12 @@ def caller_name(skip=2):
         name.append( codename ) # function or a method
     del parentframe
     return ".".join(name)
+
+#pdb.set_trace()
+#print_old = print
+def print(*args, **kvargs):
+    global settings
+    if settings.mode > FeedbackModes.silent:
+        builtins.print(*args, **kvargs)
 
 print(info(as_proper("Feadback") + " feautres are loaded."))

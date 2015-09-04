@@ -18,10 +18,12 @@ class Call(Doable):
         command = CleverString(self._command).value
         #command = CleverString(self._command).value.split(self._splitby)
         print(info('executing: %s' % command))
-        if settings.quite:
-            sp.call(command, shell=True, stdout=None, stderr=None, *args, **kvargs)
-        else:
+        if settings.mode > FeedbackModes.quite:
             sp.call(command, shell=True, *args, **kvargs)
+        else:
+            print(warn("Quite mode enabled, all output of the external calls will redirect into log files."))
+            with open('test.log', 'a') as log:
+                sp.call(command, shell=True, stdout=log, stderr=log, *args, **kvargs)
 
 class CallRawDataReader(Call):
     def __init__(self, readerType, mode, granularity, path, output):
