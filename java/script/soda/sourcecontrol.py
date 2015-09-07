@@ -79,7 +79,6 @@ class From(Doable):
         bar = ProgressBar(name='checkout from %s' % self._scm.repo)
         bar.value = 0
         bars.append(bar)
-        #TODO remove list cast!
         commits = self._scm.between(path, version, _after, _before)
         count = len(self._scm.getCommits(self._scm._repoObject.git, after = after, before = before))
         i = 0

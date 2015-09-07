@@ -66,8 +66,7 @@ class AddSodaProfileTo(Doable):
                 self._profile = soda_coverage_profile_junit
                 print(info(as_proper("Detected jUnit testing framework.")))
                 return
-            else:
-                raise ValueError("Unsupported, undetectable or missing testing framework in " + path)
+        raise ValueError("Unsupported, undetectable or missing testing framework in " + path)
 
     def _tweakPoms(self):
         # we have to fix argLine tags
