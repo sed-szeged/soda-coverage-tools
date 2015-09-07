@@ -80,4 +80,5 @@ def renderProgress():
             bar.clear()
 
 progressRender = threading.Thread(target=renderProgress, args=())
-#progressRender.start()
+progressRender.daemon = True
+progressRender.start()

@@ -11,7 +11,7 @@ class FeedbackModes(object):
     silent = -2
 
 class Settings(object):
-    mode = FeedbackModes.normal
+    mode = FeedbackModes.quite
 
 settings = Settings()
 

@@ -80,7 +80,7 @@ class From(Doable):
         bar.value = 0
         bars.append(bar)
         commits = self._scm.between(path, version, _after, _before)
-        count = len(self._scm.getCommits(self._scm._repoObject.git, after = after, before = before))
+        count = len(self._scm.getCommits(self._scm._repoObject.git, after = _after, before = _before))
         i = 0
         for commit in commits:
             print(info("Checkout to version: %s" % (as_proper(commit))))
@@ -111,7 +111,6 @@ class GitRepo(SCM):
             self._checkout(commit)
             
     def _checkout(self, commit):
-        print("futsz paraszt?")
         self._repoObject.git.checkout(commit)
 
     def clone(self, path):
@@ -139,7 +138,6 @@ class GitRepo(SCM):
 
     def iterateCommits(self, commits):
         for commit in commits:
-            print(commit)
             self._checkout(commit)
             self._repoObject.git.clean('-xfd')
             yield commit
@@ -155,5 +153,4 @@ class GitRepo(SCM):
             params.append('--before=' + before)
         info = git.log(params)
         commits = info.strip('"').split('"\n"')
-#        print(commits)
         return commits
