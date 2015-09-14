@@ -1,5 +1,5 @@
 #usage (example):
-#python3.4 single.py git_url=https://github.com/junit-team/junit.git source_path=/home/geryxyz/single_test pom_path=/home/geryxyz/single_test/pom.xml output_path=/home/geryxyz/single_test_result soda_rawDataReader_path=/home/geryxyz/soda_build/cl/SoDATools/utilities/rawdatareader
+#python3.4 single.py git_url=https://github.com/junit-team/junit.git source_path=/home/geryxyz/single_test output_path=/home/geryxyz/single_test_result soda_rawDataReader_path=/home/geryxyz/soda_build/cl/SoDATools/utilities/rawdatareader
 
 from soda import * 
 import os
