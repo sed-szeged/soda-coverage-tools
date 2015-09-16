@@ -15,6 +15,14 @@ class Settings(object):
 
 settings = Settings()
 
+def findsubclass(baseclass, indent=0):
+    if indent == 0:
+        print(baseclass.__name__)
+    indent = indent + 1
+    for c in baseclass.__subclasses__():
+        print("    "*indent + c.__name__)
+        findsubclass(c, indent)
+
 class Doable(object, metaclass=abc.ABCMeta):
     _name = ''
 
@@ -35,6 +43,9 @@ class Doable(object, metaclass=abc.ABCMeta):
         else:
             print(info("} '%s' is done." % self.__class__.__name__))
         return
+
+    def listKnownDoables():
+        findsubclass(Doable)
 
 class Phase(Doable):
     def __init__(self, name, *steps):
