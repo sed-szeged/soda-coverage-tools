@@ -30,5 +30,5 @@ class CallRawDataReader(Call):
         super().__init__('${soda_rawDataReader_path}/rawDataReader -t %s -m %s -g %s -p %s -o %s' % (readerType, mode, granularity, path, output))
 
     def _do(self, *args, **kvargs):
-       Need(aString('soda_rawDataReader_path'))
+       Need(aString('soda_rawDataReader_path'))._do(*args, **kvargs)
        super()._do(*args, **kvargs)
