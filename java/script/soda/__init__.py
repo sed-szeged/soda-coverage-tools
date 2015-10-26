@@ -8,5 +8,6 @@ from .log import *
 from .soda import *
 from .compare import *
 from .timeutil import *
+from .mutation import *
 
 print(info("SoDA support is now available!"))

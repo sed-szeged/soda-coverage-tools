@@ -22,6 +22,9 @@ def tagged(text, tag, delimiter='|'):
 def as_proper(name):
     return colored(name, 'yellow')
 
+def as_sample(text):
+    return colored(text, 'cyan')
+
 def info(text):
     return tagged(text, colored('i','white', 'on_green'), delimiter=' ')
 
