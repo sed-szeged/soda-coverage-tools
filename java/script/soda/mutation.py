@@ -2,7 +2,8 @@ from .structure import *
 from .feedback import *
 from .need import *
 from .filetweak import *
-import glob
+from .stringutil import *
+import glob2
 import re
 import abc
 import json #https://docs.python.org/3.4/library/json.html
@@ -55,22 +56,40 @@ class DumpAction(SodaAnnotationAction):
         last = self.stack[-1]
         print(info('the last annotation was %s' % as_sample(last)))
 
+class MutationFlavor:
+    original = 'original'
+    modified = 'modified'
+
+class DetectMutationAction(SodaAnnotationAction):
+    def Apply(self, line, state, **kvargs):
+        if self.stack:
+            last = self.stack[-1]
+            if last.keyword == 'begin' and last.param == 'mutation' and last.data['type'] == self._executor._mutation_type:
+                state['in_mutation'] = True
+                state['mutation_flavor'] = MutationFlavor.original
+                self.stack.pop()
+                print(info("Step into mutation declaration."))
+                print(info("Step into original flavor."))
+            elif last.keyword == 'end':
+                if last.param == 'mutation':
+                    state['in_mutation'] = False
+                    del state['mutation_flavor']
+                    print(info("Leave mutation declaration."))
+                    self.stack.pop()
+                elif last.param == 'original':
+                    state['mutation_flavor'] = MutationFlavor.modified
+                    print(info("Leave original flavor."))
+                    print(info("Step into modified flavor."))
+                    self.stack.pop()
+
 class DisableMutationAction(SodaAnnotationAction):
     def Apply(self, line, state, **kvargs):
-        if not self.stack:
-            return None
-        last = self.stack[-1]
-        if last.keyword == 'begin' and last.param == 'mutation' and last.data['type'] == self._executor._mutation_type:
-            state['in_mutation'] = True
-            self.stack.pop()
-            print(info("Step into mutation declaration."))
-        elif last.keyword == 'end' and last.param == 'mutation':
-            state['in_mutation'] = False
-            print(info("Leave mutation declaration."))
-            self.stack.pop()
-        elif not isAnnotation(line) and state.get('in_mutation', False):
-            print(info("Emmit disabled source code line."))
-            return '//%s //disabled by SoDA Python API' % line
+        if state.get('mutation_flavor', None) == MutationFlavor.original:
+            print(info("Emmit original source code line."))
+            return line
+        elif state.get('mutation_flavor', None) == MutationFlavor.modified:
+            print(info("Suppress modified source code line."))
+            return '//%s //pySoDA: disabled' % line
 
 class InsertInstrumentationCodeAction(SodaAnnotationAction):
     def __init__(self, executor):
@@ -78,19 +97,18 @@ class InsertInstrumentationCodeAction(SodaAnnotationAction):
         self._mutation_count = 0
 
     def Apply(self, line, state, **kvargs):
-        if not self.stack:
-            return None
-        last = self.stack[-1]
-        if (last.keyword == 'begin' and last.param == 'mutation' and last.data['type'] == self._executor._mutation_type) or (last.keyword == 'begin' and last.param == 'method'):
-            print(info("Insert instrumentation source code line."))
-            self.stack.pop()
-            data = {'mutation': {'type': self._executor._mutation_type}, 'file': {}}
-            if last.param == 'mutation':
-                data['mutation']['count'] = self._mutation_count
-                self._mutation_count += 1
-            if 'source_path' in kvargs:
-                data['file']['relative-path'] = kvargs['source_path'][1:]
-            return '%s\nhu.sed.soda.tools.SimpleInstrumentationListener.recordCoverage("%s");' % (line, json.dumps(data).replace('"', '\\"'))
+        if self.stack:
+            last = self.stack[-1]
+            if (last.keyword == 'begin' and last.param == 'mutation' and last.data['type'] == self._executor._mutation_type) or (last.keyword == 'begin' and last.param == 'method'):
+                print(info("Insert instrumentation source code line."))
+                self.stack.pop()
+                data = {'mutation': {'type': self._executor._mutation_type}, 'file': {}}
+                if last.param == 'mutation':
+                    data['mutation']['count'] = self._mutation_count
+                    self._mutation_count += 1
+                if 'source_path' in kvargs:
+                    data['file']['relative-path'] = kvargs['source_path'][1:]
+                return 'hu.sed.soda.tools.SimpleInstrumentationListener.recordCoverage("%s"); //pySoDA: instrumentation code' % json.dumps(data).replace('"', '\\"')
 
 class CreateInstrumentedCodeBase(Doable):
     def __init__(self, annotated_path, result_path, mutation_type):
@@ -102,7 +120,7 @@ class CreateInstrumentedCodeBase(Doable):
 
     def _init_actions(self):
         #self._actions = [cls(self) for cls in SodaAnnotationAction.__subclasses__()]
-        self._actions = [DisableMutationAction(self), InsertInstrumentationCodeAction(self)]
+        self._actions = [DetectMutationAction(self), DisableMutationAction(self), InsertInstrumentationCodeAction(self)]
 
     def _do(self, *args, **kvargs):
         _annotated_path = CleverString(self._annotated_path).value
@@ -111,27 +129,35 @@ class CreateInstrumentedCodeBase(Doable):
         DeleteFolder(_result_path).do()
         instrumented_path = f(_result_path)/'instrumented'
         Copy(_annotated_path, instrumented_path).do()
-        sourceFiles = glob.glob(str(f(instrumented_path)/'*.java'))
+        sourceFiles = glob2.glob(str(f(instrumented_path)/'**'/'*.java'))
         for source in sourceFiles:
-            original = '%s.original' % source
-            Copy(source, original).do()
+            original = self.createBackupFile(source)
             with open(source, 'w') as source_file, open(original, 'r') as original_file:
                 self._init_actions()
                 self._state = {}
                 for index, line in enumerate(original_file):
                     if isAnnotation(line):
                         print(info("Annotation found at %s:%s") % (as_proper(source.replace('_result_path','')), as_proper(index)))
+                        annotation = SodaAnnotation(line)
                         for action in self._actions:
-                            action.stack.append(SodaAnnotation(line))
+                            action.stack.append(annotation)
                     new_lines = []
                     for action in self._actions:
-                        new_line = action.Apply(line.rstrip(), self._state, source_path=source.replace(str(instrumented_path),''))
+                        new_line = action.Apply(line.rstrip(), self._state, source_path=source.replace(str(instrumented_path), ''))
                         if new_line:
                             new_lines.append(new_line)
-                    if new_lines:
-                        for new_line in new_lines:
-                            source_file.write('%s\n' % new_line)
-                    else:
-                        source_file.write(line)
+                    self.emitNewLines(line, new_lines, source_file)
+
+    def createBackupFile(self, source):
+        original = '%s.original' % source
+        Copy(source, original).do()
+        return original
+
+    def emitNewLines(self, line, new_lines, source_file):
+        if new_lines:
+            for new_line in new_lines:
+                source_file.write('%s\n' % new_line)
+        else:
+            source_file.write(line)
 
 print(info("%s is loaded" % as_proper("Program Mutation support")))
