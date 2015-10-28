@@ -1,3 +1,4 @@
+from soda import CleverString, DeleteFolder, f, Copy, info, as_proper, Doable
 from .structure import *
 from .feedback import *
 from .need import *
@@ -110,26 +111,21 @@ class InsertInstrumentationCodeAction(SodaAnnotationAction):
                     data['file']['relative-path'] = kvargs['source_path'][1:]
                 return 'hu.sed.soda.tools.SimpleInstrumentationListener.recordCoverage("%s"); //pySoDA: instrumentation code' % json.dumps(data).replace('"', '\\"')
 
-class CreateInstrumentedCodeBase(Doable):
-    def __init__(self, annotated_path, result_path, mutation_type):
-        self._annotated_path = annotated_path
+class ModifySourceCode(Doable, metaclass=abc.ABCMeta):
+    def __init__(self, original_path, result_path):
+        self._original_path = original_path
         self._result_path = result_path
-        self._mutation_type = mutation_type
 
-        self._state = {}
-
+    @abc.abstractmethod
     def _init_actions(self):
-        #self._actions = [cls(self) for cls in SodaAnnotationAction.__subclasses__()]
-        self._actions = [DetectMutationAction(self), DisableMutationAction(self), InsertInstrumentationCodeAction(self)]
+        pass
 
     def _do(self, *args, **kvargs):
-        _annotated_path = CleverString(self._annotated_path).value
+        _original_path = CleverString(self._original_path).value
         _result_path = CleverString(self._result_path).value
-        _mutation_type = CleverString(self._mutation_type).value
         DeleteFolder(_result_path).do()
-        instrumented_path = f(_result_path)/'instrumented'
-        Copy(_annotated_path, instrumented_path).do()
-        sourceFiles = glob2.glob(str(f(instrumented_path)/'**'/'*.java'))
+        Copy(_original_path, _result_path).do()
+        sourceFiles = glob2.glob(str(f(_result_path) / '**' / '*.java'))
         for source in sourceFiles:
             original = self.createBackupFile(source)
             with open(source, 'w') as source_file, open(original, 'r') as original_file:
@@ -143,7 +139,8 @@ class CreateInstrumentedCodeBase(Doable):
                             action.stack.append(annotation)
                     new_lines = []
                     for action in self._actions:
-                        new_line = action.Apply(line.rstrip(), self._state, source_path=source.replace(str(instrumented_path), ''))
+                        new_line = action.Apply(line.rstrip(), self._state,
+                                                source_path=source.replace(str(_result_path), ''))
                         if new_line:
                             new_lines.append(new_line)
                     self.emitNewLines(line, new_lines, source_file)
@@ -159,5 +156,14 @@ class CreateInstrumentedCodeBase(Doable):
                 source_file.write('%s\n' % new_line)
         else:
             source_file.write(line)
+
+class CreateInstrumentedCodeBase(ModifySourceCode):
+    def _init_actions(self):
+        self._actions = [DetectMutationAction(self), DisableMutationAction(self), InsertInstrumentationCodeAction(self)]
+
+    def __init__(self, original_path, result_path, mutation_type):
+        super().__init__(original_path, result_path)
+        self._mutation_type = mutation_type
+        self._state = {}
 
 print(info("%s is loaded" % as_proper("Program Mutation support")))
