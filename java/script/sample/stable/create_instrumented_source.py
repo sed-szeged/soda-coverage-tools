@@ -1,4 +1,4 @@
-#python3.4 create_mutants.py annotated_source=/home/geryxyz/mutation_test instrumented_source=/home/geryxyz/instrumented_result
+#python3.4 create_instrumented_source.py annotated_source=/home/geryxyz/mutation_test instrumented_source=/home/geryxyz/instrumented_result
 
 from soda import *
 

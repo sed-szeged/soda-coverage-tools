@@ -1,13 +1,9 @@
-from soda import CleverString, DeleteFolder, f, Copy, info, as_proper, Doable
-from .structure import *
-from .feedback import *
-from .need import *
+import json #https://docs.python.org/3.4/library/json.html
+
 from .filetweak import *
 from .stringutil import *
 import glob2
-import re
-import abc
-import json #https://docs.python.org/3.4/library/json.html
+
 
 def isAnnotation(line):
     return line.startswith('//SZTE_SODA')
@@ -31,7 +27,11 @@ class SodaAnnotation:
             raise AttributeError('Unsupported annotation format in "%s".' % as_sample(line))
 
     def __str__(self):
-        return json.dumps({'keyword':self.keyword, 'param':self.param, 'data':self.data})
+        return json.dumps(self.toJSON())
+
+    def toJSON(self):
+        return {'keyword': self.keyword, 'param': self.param, 'data': self.data}
+
 
 class MutationType:
     none = 'none'
@@ -42,6 +42,7 @@ class MutationType:
 
 class SodaAnnotationAction(metaclass=abc.ABCMeta):
     def __init__(self, executor):
+        self._mutation_count = 0
         self._executor = executor
         self.stack = []
         self._state = {}
@@ -49,6 +50,19 @@ class SodaAnnotationAction(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def Apply(self, line, state, **kvargs):
         pass
+
+    def createID(self, annotation, **kvargs):
+        data = {'annotation': annotation.toJSON()}
+        if annotation.param == 'mutation':
+            data['mutation'] = {}
+            data['mutation']['type'] = self._executor._mutation_type
+            data['mutation']['count'] = self._mutation_count
+            self._mutation_count += 1
+        if 'source_path' in kvargs:
+            data['file'] = {}
+            data['file']['relative-path'] = kvargs['source_path'][1:]
+        return data
+
 
 class DumpAction(SodaAnnotationAction):
     def Apply(self, line, state, **kvargs):
@@ -67,6 +81,7 @@ class DetectMutationAction(SodaAnnotationAction):
             last = self.stack[-1]
             if last.keyword == 'begin' and last.param == 'mutation' and last.data['type'] == self._executor._mutation_type:
                 state['in_mutation'] = True
+                state['mutation_id'] = self.createID(last, **kvargs)
                 state['mutation_flavor'] = MutationFlavor.original
                 self.stack.pop()
                 print(info("Step into mutation declaration."))
@@ -95,7 +110,6 @@ class DisableMutationAction(SodaAnnotationAction):
 class InsertInstrumentationCodeAction(SodaAnnotationAction):
     def __init__(self, executor):
         super().__init__(executor)
-        self._mutation_count = 0
 
     def Apply(self, line, state, **kvargs):
         if self.stack:
@@ -103,16 +117,13 @@ class InsertInstrumentationCodeAction(SodaAnnotationAction):
             if (last.keyword == 'begin' and last.param == 'mutation' and last.data['type'] == self._executor._mutation_type) or (last.keyword == 'begin' and last.param == 'method'):
                 print(info("Insert instrumentation source code line."))
                 self.stack.pop()
-                data = {'mutation': {'type': self._executor._mutation_type}, 'file': {}}
-                if last.param == 'mutation':
-                    data['mutation']['count'] = self._mutation_count
-                    self._mutation_count += 1
-                if 'source_path' in kvargs:
-                    data['file']['relative-path'] = kvargs['source_path'][1:]
+                data = self.createID(last, **kvargs)
                 return 'hu.sed.soda.tools.SimpleInstrumentationListener.recordCoverage("%s"); //pySoDA: instrumentation code' % json.dumps(data).replace('"', '\\"')
+
 
 class ModifySourceCode(Doable, metaclass=abc.ABCMeta):
     def __init__(self, original_path, result_path):
+        self._state = {}
         self._original_path = original_path
         self._result_path = result_path
 
@@ -164,6 +175,52 @@ class CreateInstrumentedCodeBase(ModifySourceCode):
     def __init__(self, original_path, result_path, mutation_type):
         super().__init__(original_path, result_path)
         self._mutation_type = mutation_type
-        self._state = {}
+
+class EnableMutationAction(SodaAnnotationAction):
+    def __init__(self, executor):
+        super().__init__(executor)
+        self._last_enabled_mutation_ID = None
+        self._enable_next_mutation = True
+
+    def Apply(self, line, state, **kvargs):
+        if 'source_path' in kvargs:
+            source_path = kvargs['source_path']
+            if self._enable_next_mutation:
+                self._enable_next_mutation = False
+                self._last_enabled_mutation_ID = state['mutation_id']
+                if state.get('mutation_flavor', None) == MutationFlavor.original:
+                    print(info("Suppress original source code line."))
+                    return '//%s //pySoDA: disabled' % line
+                elif state.get('mutation_flavor', None) == MutationFlavor.modified:
+                    print(info("Emit modified source code line."))
+                    return line
+            self._enable_next_mutation =\
+                state['mutation_id']['mutation']['type'] == self._last_enabled_mutation_ID['mutation']['type'] and\
+                state['mutation_id']['mutation']['count'] == self._last_enabled_mutation_ID['mutation']['count'] and\
+                state['mutation_id']['file']['relative-path'] == self._last_enabled_mutation_ID['file']['relative-path']
+
+class CountMutationsAction(SodaAnnotationAction):
+    def Apply(self, line, state, **kvargs):
+        if self.stack:
+            last = self.stack[-1]
+            if last.keyword == 'begin' and last.param == 'mutation' and last.data['type'] == self._executor._mutation_type:
+                state['mutation_index'] = state.get('mutation_index', -1) + 1
+
+class ModifySourceCodeWithPersistentActionSate(ModifySourceCode):
+    def __init__(self, original_path, result_path, *actions):
+        super().__init__(original_path, result_path)
+        self._actions = actions
+
+    def _init_actions(self):
+        pass
+
+    def _do(self, *args, **kvargs):
+        super()._do(*args, **kvargs)
+        #return self.
+
+class CreateMutants(Doable):
+    def _do(self, *args, **kvargs):
+        pass
+        #ModifySourceCodeWithPersistentActionSate
 
 print(info("%s is loaded" % as_proper("Program Mutation support")))
