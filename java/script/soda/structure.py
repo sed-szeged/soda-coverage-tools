@@ -69,7 +69,6 @@ class Phase(Doable):
             undent()
             print(info("} step#%d done." % i))
             bar.value = i / len(self._steps)
-            bar.draw()
         bars.remove(bar)
 
 def pairwise(iterable):

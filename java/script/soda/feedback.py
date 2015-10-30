@@ -84,4 +84,4 @@ def renderProgress():
 
 progressRender = threading.Thread(target=renderProgress, args=())
 progressRender.daemon = True
-progressRender.start()
+#progressRender.start()
