@@ -1,10 +1,11 @@
 import json #https://docs.python.org/3.4/library/json.html
+import hashlib
+import os
+
 from .filetweak import *
 from .stringutil import *
 import glob2
 from deepdiff import DeepDiff as hasDiff #https://github.com/seperman/deepdiff
-import hashlib
-import os
 
 
 def isAnnotation(line):
@@ -91,7 +92,7 @@ class DetectMutationAction(SodaAnnotationAction):
             del state['mutation_end']
         if self.stack:
             last = self.stack[-1]
-            if last.keyword == 'begin' and last.param == 'mutation':
+            if last.keyword == 'begin' and last.param == 'mutation' and last.data['type'] == self._executor._mutation_type:
                 state['mutation_start'] = True
                 state['in_mutation'] = True
                 state['mutation_id'] = self.createID(last, **kvargs)
@@ -101,7 +102,7 @@ class DetectMutationAction(SodaAnnotationAction):
                 print(info("Step into mutation declaration."))
                 print(info("Step into original flavor."))
             elif last.keyword == 'end':
-                if last.param == 'mutation':
+                if last.param == 'mutation' and state.get('mutation_type', None) == self._executor._mutation_type:
                     state['mutation_end'] = True
                     state['in_mutation'] = False
                     del state['mutation_flavor']
@@ -109,7 +110,7 @@ class DetectMutationAction(SodaAnnotationAction):
 #                    del state['mutation_id']
                     print(info("Leave mutation declaration."))
                     self.stack.pop()
-                elif last.param == 'original':
+                elif last.param == 'original' and state.get('mutation_type', None) == self._executor._mutation_type:
                     state['mutation_flavor'] = MutationFlavor.modified
                     print(info("Leave original flavor."))
                     print(info("Step into modified flavor."))
@@ -139,7 +140,8 @@ class InsertInstrumentationCodeAction(SodaAnnotationAction):
 
 
 class ModifySourceCode(Doable, metaclass=abc.ABCMeta):
-    def __init__(self, original_path, result_path, ):
+    def __init__(self, original_path, result_path, mutation_type):
+        self._mutation_type = mutation_type
         self._state = {}
         self.permanent_state = {}
         self._original_path = original_path
@@ -195,8 +197,8 @@ class CreateInstrumentedCodeBase(ModifySourceCode):
         self._actions = [DetectMutationAction(self), DisableMutationAction(self), InsertInstrumentationCodeAction(self)]
 
     def __init__(self, original_path, result_path, mutation_type):
-        super().__init__(original_path, result_path)
-        self._mutation_type = mutation_type
+        super().__init__(original_path, result_path, mutation_type)
+
 
 class EnableMutationAction(SodaAnnotationAction):
     def __init__(self, executor):
@@ -242,8 +244,8 @@ class CountMutationsAction(SodaAnnotationAction):
                 state['mutation_index'] = state.get('mutation_index', -1) + 1
 
 class ModifySourceCodeWithPersistentActionSate(ModifySourceCode):
-    def __init__(self, original_path, result_path, *actions):
-        super().__init__(original_path, result_path)
+    def __init__(self, original_path, result_path, mutation_type, *actions):
+        super().__init__(original_path, result_path, mutation_type)
         self._actions = [action(self) for action in actions]
         self.active_mutant = None
 
@@ -271,9 +273,9 @@ class CreateMutants(Doable):
         mutantCreator = ModifySourceCodeWithPersistentActionSate(
             _annoteted_path,
             temp_path,
+            _mutation_type,
             DetectMutationAction, EnableMutationAction
         )
-        mutantCreator._mutation_type = _mutation_type
 
         mutants_hids = {}
         global_mutation_index = 0
