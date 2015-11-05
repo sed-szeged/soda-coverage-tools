@@ -32,3 +32,14 @@ class CallRawDataReader(Call):
     def _do(self, *args, **kvargs):
        Need(aString('soda_rawDataReader_path'))._do(*args, **kvargs)
        super()._do(*args, **kvargs)
+
+class CallMaven(Call):
+    def __init__(self, phases, profiles, *args, **kvargs):
+        super().__init__('mvn3.3 %s -P%s' % (' '.join(phases), ','.join(profiles)))
+        self._args = args
+        self._kvargs = kvargs
+
+    def _do(self, *args, **kvargs):
+        self._args += args
+        self._kvargs.update(kvargs)
+        super()._do(*self._args, **self._kvargs)

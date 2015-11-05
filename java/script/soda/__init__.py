@@ -10,5 +10,7 @@ from .compare import *
 from .timeutil import *
 from .mutation import *
 from .stringutil import *
+from .filesystem import *
+from .mutant import *
 
 print(info("SoDA support is now available!"))

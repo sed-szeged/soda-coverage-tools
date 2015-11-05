@@ -1,7 +1,6 @@
 import json #https://docs.python.org/3.4/library/json.html
 import hashlib
 import os
-
 from .filetweak import *
 from .stringutil import *
 import glob2
