@@ -49,7 +49,7 @@ class SodaAnnotationAction(metaclass=abc.ABCMeta):
         data = {'annotation': annotation.toJSON()}
         if annotation.param == 'mutation':
             data['mutation'] = {}
-            data['mutation']['type'] = self._executor._mutation_type
+            data['mutation']['type'] = annotation.data['type']
             data['mutation']['count'] = self._mutation_count
             self._mutation_count += 1
         if 'source_path' in kvargs:

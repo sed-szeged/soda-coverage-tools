@@ -8,3 +8,8 @@ class MutationType:
     ifType = 'if'
     variableSwitchType = 'variable_switch'
     statementDeletionType = 'statement_deletion'
+
+class MutationFilter:
+    OnAll = "all"
+    OnIgnored = "ignored"
+    OnEnabled = "enabled"

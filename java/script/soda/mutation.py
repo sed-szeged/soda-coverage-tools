@@ -1,9 +1,9 @@
 import hashlib
 
 from .annotation import *
-from .annotation import SodaAnnotation
 from .instrumentation_action import InsertInstrumentationCodeAction
 from .mutation_action import DetectMutationAction, DisableMutationAction, EnableMutationAction
+from .mutation_util import *
 
 
 class ModifySourceCode(Doable, metaclass=abc.ABCMeta):
@@ -74,6 +74,9 @@ class ModifySourceCodeWithPersistentActionSate(ModifySourceCode):
         self._actions = [action(self) for action in actions]
         self.active_mutant = None
 
+    def addAction(self, action):
+        self._actions.append(action)
+
     def _init_actions(self):
         for action in self._actions:
             action.reset()
@@ -107,6 +110,9 @@ class CreateMutants(Doable):
             _mutation_type,
             DetectMutationAction, EnableMutationAction
         )
+        disableMutation = DisableMutationAction(mutantCreator)
+        disableMutation.filter = MutationFilter.OnIgnored
+        mutantCreator.addAction(disableMutation)
 
         mutants_hids = {}
         global_mutation_index = 0
