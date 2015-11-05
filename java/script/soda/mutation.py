@@ -4,6 +4,8 @@ from .annotation import *
 from .instrumentation_action import InsertInstrumentationCodeAction
 from .mutation_action import DetectMutationAction, DisableMutationAction, EnableMutationAction
 from .mutation_util import *
+import json
+from .filetweak import *
 
 
 class ModifySourceCode(Doable, metaclass=abc.ABCMeta):
@@ -66,6 +68,15 @@ class CreateInstrumentedCodeBase(ModifySourceCode):
 
     def __init__(self, original_path, result_path, mutation_type):
         super().__init__(original_path, result_path, mutation_type)
+        self.instrumentations = []
+
+    def _do(self, *args, **kvargs):
+        super()._do(*arg, **kvargs)
+        _result_path = CleverString(self._result_path).value
+        _instrumentation_log_path = f(_result_path)/'instrumentation.log.txt'
+        with open(str(_instrumentation_log_path), 'w') as log:
+            for instrumentation in self.instrumentations:
+                log.write('%s\n' % json.dumps(instrumentation))
 
 
 class ModifySourceCodeWithPersistentActionSate(ModifySourceCode):
@@ -143,4 +154,3 @@ class CreateMutants(Doable):
 
 
 print(info("%s is loaded" % as_proper("Program Mutation support")))
-

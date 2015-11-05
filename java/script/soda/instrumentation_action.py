@@ -13,4 +13,5 @@ class InsertInstrumentationCodeAction(SodaAnnotationAction):
                 print(info("Insert instrumentation source code line."))
                 self.stack.pop()
                 data = self.createID(last, **kvargs)
+                self._executor.instrumentations.append(data)
                 return 'hu.sed.soda.tools.SimpleInstrumentationListener.recordCoverage("%s"); //pySoDA: instrumentation code' % json.dumps(data).replace('"', '\\"')
