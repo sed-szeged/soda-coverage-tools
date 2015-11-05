@@ -2,6 +2,7 @@ import subprocess as sp #https://docs.python.org/3.4/library/subprocess.html
 from .need import *
 from .feedback import *
 from .structure import *
+import datetime
 
 print(info(as_proper("Commandline call") + " features are loaded."))
 
@@ -22,7 +23,10 @@ class Call(Doable):
             sp.call(command, shell=True, *args, **kvargs)
         else:
             print(warn("Quite mode enabled, all output of the external calls will redirect into log files."))
-            with open('test.log', 'a') as log:
+            timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
+            with open('Call_%s.log' % timestamp, 'w') as log:
+                log.write('the exact command was the following:\n\n%s\n\n' % command)
+            with open('Call_%s.log' % timestamp, 'a') as log:
                 sp.call(command, shell=True, stdout=log, stderr=log, *args, **kvargs)
 
 class CallRawDataReader(Call):
@@ -38,8 +42,15 @@ class CallMaven(Call):
         super().__init__('mvn3.3 %s -P%s' % (' '.join(phases), ','.join(profiles)))
         self._args = args
         self._kvargs = kvargs
+        self._path = None
+
+    def From(self, path):
+        self._path = path
+        return self
 
     def _do(self, *args, **kvargs):
         self._args += args
         self._kvargs.update(kvargs)
+        if self._path:
+            self._kvargs.update({'cwd': CleverString(self._path).value})
         super()._do(*self._args, **self._kvargs)

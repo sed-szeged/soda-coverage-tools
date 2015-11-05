@@ -87,6 +87,11 @@ class CreateMutants(Doable):
         self._mutants_path = mutants_path
         self._annoteted_path = annoteted_path
         self._mutation_type = mutation_type
+        self._limit = None
+
+    def onlyFirst(self, limit):
+        self._limit = limit
+        return self
 
     def _do(self, *args, **kvargs):
         _annoteted_path = CleverString(self._annoteted_path).value
@@ -106,6 +111,10 @@ class CreateMutants(Doable):
         mutants_hids = {}
         global_mutation_index = 0
         while True:
+            if self._limit:
+                _limit = int(CleverString(self._limit)._value)
+                if global_mutation_index >= _limit:
+                    break
             mutantCreator.enabled_mutation_id = None
             DeleteFolder(temp_path).do()
             mutantCreator.do()
