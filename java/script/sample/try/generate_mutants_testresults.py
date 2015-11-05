@@ -20,6 +20,6 @@ Phase('generate test results',
     ),
     Need(aString('mutant_testresult')),
     Phase('generate test results for mutants',
-        *[GenerateTestResultForMutant(mutant, f('${mutant_testresult}')/str(index+1)) for index, mutant in enumerate(FromDirectory('${mutant_source}').getMutants())]
+        *[GenerateTestResultForMutant(mutant, f('${mutant_testresult}')/str(index+1), '${mutant_testresult}') for index, mutant in enumerate(FromDirectory('${mutant_source}').getMutants())]
     )
 ).do()

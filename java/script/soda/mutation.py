@@ -142,15 +142,16 @@ class CreateMutants(Doable):
                                mutantCreator.enabled_mutation_id['mutation']['type'],
                                mutantCreator.enabled_mutation_id['mutation']['count'])
                 hashed.update(hid.encode('utf-8'))
-                mutant_path = f(_mutants_path)/('%d_%s' % (global_mutation_index, hashed.hexdigest()))
+                hexdigest = hashed.hexdigest()
+                mutant_path = f(_mutants_path)/('%d_%s' % (global_mutation_index, hexdigest))
                 global_mutation_index += 1
-                mutants_hids[hid] = mutant_path
+                mutants_hids[hid] = [hexdigest, str(mutant_path)]
                 os.rename(str(temp_path), str(mutant_path))
             else:
                 break
         with open(str(f(_mutants_path)/'mutants.list.csv'), 'w') as hid_dump:
             for hid in mutants_hids:
-                hid_dump.write('%s;%s\n' % (hid, mutants_hids[hid]))
+                hid_dump.write('%s;%s\n' % (hid, ';'.join(mutants_hids[hid])))
 
 
 print(info("%s is loaded" % as_proper("Program Mutation support")))
