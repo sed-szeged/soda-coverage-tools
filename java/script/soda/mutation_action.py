@@ -1,6 +1,7 @@
 from .annotation import SodaAnnotationAction
 from .mutation_util import MutationFlavor
 from .feedback import info, as_proper
+from .need import *
 from deepdiff import DeepDiff as hasDiff
 
 
@@ -9,13 +10,14 @@ class DetectMutationAction(SodaAnnotationAction):
         super().__init__(executor)
 
     def Apply(self, line, state, **kvargs):
+        _mutation_type = CleverString(self._executor._mutation_type).value
         if 'mutation_start' in state:
             del state['mutation_start']
         if 'mutation_end' in state:
             del state['mutation_end']
         if self.stack:
             last = self.stack[-1]
-            if last.keyword == 'begin' and last.param == 'mutation' and last.data['type'] == self._executor._mutation_type:
+            if last.keyword == 'begin' and last.param == 'mutation' and last.data['type'] == _mutation_type:
                 state['mutation_start'] = True
                 state['in_mutation'] = True
                 state['mutation_id'] = self.createID(last, **kvargs)
@@ -25,7 +27,7 @@ class DetectMutationAction(SodaAnnotationAction):
                 print(info("Step into mutation declaration."))
                 print(info("Step into original flavor."))
             elif last.keyword == 'end':
-                if last.param == 'mutation' and state.get('mutation_type', None) == self._executor._mutation_type:
+                if last.param == 'mutation' and state.get('mutation_type', None) == _mutation_type:
                     state['mutation_end'] = True
                     state['in_mutation'] = False
                     del state['mutation_flavor']
@@ -33,7 +35,7 @@ class DetectMutationAction(SodaAnnotationAction):
 #                    del state['mutation_id']
                     print(info("Leave mutation declaration."))
                     self.stack.pop()
-                elif last.param == 'original' and state.get('mutation_type', None) == self._executor._mutation_type:
+                elif last.param == 'original' and state.get('mutation_type', None) == _mutation_type:
                     state['mutation_flavor'] = MutationFlavor.modified
                     print(info("Leave original flavor."))
                     print(info("Step into modified flavor."))
