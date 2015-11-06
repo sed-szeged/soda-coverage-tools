@@ -43,7 +43,8 @@ class ModifySourceCode(Doable, metaclass=abc.ABCMeta):
                     new_lines = []
                     for action in self._actions:
                         new_line = action.Apply(line.rstrip(), self._state,
-                                                source_path=source.replace(str(_result_path), ''))
+                                                source_path=source.replace(str(_result_path), ''),
+                                                line_index=index)
                         if new_line:
                             new_lines.append(new_line)
                     self.emitNewLines(line, new_lines, source_file)
@@ -152,6 +153,6 @@ class CreateMutants(Doable):
         with open(str(f(_mutants_path)/'mutants.list.csv'), 'w') as hid_dump:
             for hid in mutants_hids:
                 hid_dump.write('%s;%s\n' % (hid, ';'.join(mutants_hids[hid])))
-
+        DeleteFolder(temp_path).do()
 
 print(info("%s is loaded" % as_proper("Program Mutation support")))

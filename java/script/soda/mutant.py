@@ -16,6 +16,8 @@ class MutantCode:
                 if source_path == entry[-1].strip() + '/':
                     self.entry = entry
                     break
+            else:
+                pdb.set_trace()
 
     def generateTestResults(self, output_path):
         _source_path = CleverString(self.source_path).value

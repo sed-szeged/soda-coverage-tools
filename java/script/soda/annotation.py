@@ -55,6 +55,10 @@ class SodaAnnotationAction(metaclass=abc.ABCMeta):
         if 'source_path' in kvargs:
             data['file'] = {}
             data['file']['relative_path'] = kvargs['source_path'][1:]
+        if 'line_index' in kvargs:
+            if 'file' not in data:
+                data['file'] = {}
+            data['file']['line_index'] = kvargs['line_index']
         return data
 
 class DumpAction(SodaAnnotationAction):

@@ -8,7 +8,7 @@ Phase('generate mutants',
     From(GitRepo('${git_url}')).to('${annotated_source}').checkout('sed-mutations'),
     Need(aString('mutant_source')),
     Need(aString('mutation_type')),
-    CreateMutants('${annotated_source}', '${mutant_source}', '${mutation_type}').onlyFirst(3)
+    CreateMutants('${annotated_source}', '${mutant_source}', '${mutation_type}')
 ).do()
 
 Phase('generate test results',
