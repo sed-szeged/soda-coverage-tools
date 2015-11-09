@@ -60,6 +60,9 @@ public class CustomTestExecutionListener extends RunListener implements ITestLis
    * Statistics about the test suite.
    */
   private static Map<JUnitStatus, Long> testStats = new HashMap<JUnitStatus, Long>();
+  
+  private static int reset = 0;
+  private static int dump = 0;
 
   /**
    * Initializes the output directory and the log output stream.
@@ -158,6 +161,8 @@ public class CustomTestExecutionListener extends RunListener implements ITestLis
    * Resets the actual coverage.
    */
   public static void resetCoverage() {
+    ++reset;
+    
     try {
       ExecDumpClient client = new ExecDumpClient();
       client.setReset(true);
@@ -166,6 +171,21 @@ public class CustomTestExecutionListener extends RunListener implements ITestLis
       client.dump(Constants.JACOCO_AGENT_ADDRESS, Constants.JACOCO_AGENT_PORT);
     } catch (IOException e) {
       LOGGER.warning("Cannot reset coverage because: " + e.getMessage());
+    }
+  }
+  
+  /**
+   * Saves then resets the actual coverage.
+   */
+  public static void dumpCoverage() {
+    ++dump;
+    
+    File coverageFile = new File(outputDirectory, actualTestInfo.getHash() + '.' + Constants.COVERAGE_FILE_EXT);
+
+    if (dumpAndResetCoverage(coverageFile)) {
+      testResults.add(actualTestInfo);
+    } else {
+      LOGGER.warning(String.format("Coverage data already exists for test '%s' in file '%s'", actualTestInfo.getTestName(), coverageFile.getPath()));
     }
   }
 
@@ -209,7 +229,7 @@ public class CustomTestExecutionListener extends RunListener implements ITestLis
 
     handleEvent(description, JUnitStatus.STARTED);
 
-    resetCoverage();
+    //resetCoverage();
 
     super.testStarted(description);
   }
@@ -232,12 +252,10 @@ public class CustomTestExecutionListener extends RunListener implements ITestLis
   public void testFinished(Description description) throws Exception {
     handleEvent(description, JUnitStatus.FINISHED);
 
-    File coverageFile = new File(outputDirectory, actualTestInfo.getHash() + '.' + Constants.COVERAGE_FILE_EXT);
-
-    if (dumpAndResetCoverage(coverageFile)) {
-      testResults.add(actualTestInfo);
-    } else {
-      LOGGER.warning(String.format("Coverage data already exists for test '%s' in file '%s'", actualTestInfo.getTestName(), coverageFile.getPath()));
+    //dumpCoverage();
+    
+    if (!(reset == 1 && dump == 1)) {
+      throw new IllegalStateException(actualTestInfo.getTestName() + " was not instrumented properly.");
     }
 
     super.testFinished(description);
@@ -268,17 +286,15 @@ public class CustomTestExecutionListener extends RunListener implements ITestLis
     String testName = TestInfo.getTestName(result);
     TestNGStatus status = TestNGStatus.createFrom(result);
 
-    TestInfo info = new TestInfo(testName, status);
+    actualTestInfo = new TestInfo(testName, status);
 
     LOGGER.info(String.format("%s %s", testName, status));
 
     if (status != TestNGStatus.STARTED && status != TestNGStatus.SKIPPED) {
-      File coverageFile = new File(outputDirectory, info.getHash() + '.' + Constants.COVERAGE_FILE_EXT);
-
-      if (dumpAndResetCoverage(coverageFile)) {
-        testResults.add(info);
-      } else {
-        LOGGER.warning(String.format("Coverage data already exists for test '%s' in file '%s'", info.getTestName(), coverageFile.getPath()));
+      //dumpCoverage();
+      
+      if (!(reset == 1 && dump == 1)) {
+        throw new IllegalStateException(actualTestInfo.getTestName() + " was not instrumented properly.");
       }
     }
   }
@@ -287,7 +303,7 @@ public class CustomTestExecutionListener extends RunListener implements ITestLis
   public void onTestStart(ITestResult result) {
     handleEvent(result);
 
-    resetCoverage();
+    //resetCoverage();
   }
 
   @Override
