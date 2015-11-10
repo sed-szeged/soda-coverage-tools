@@ -14,12 +14,11 @@ Phase('generate mutants',
 Phase('generate test results',
     Phase('generate test results for original',
         Need(aString('original_source')),
-        From(GitRepo('${git_url}')).to('${original_source}').checkout('master'),
+        From(GitRepo('${git_url}')).to('${original_source}').checkout('sed-poms'),
         CallMaven(['clean', 'test'], ['soda-dump-test-results']).From('${original_source}'),
-        CollectFiles('${original_source}', f('target')/'jacoco'/'0'/'TestResults.r0', f('${mutant_testresult}')/str(0))
+        CollectFiles('${original_source}', f('target')/'jacoco'/'0'/'TestResults.r0', f('${mutant_testresult}')/'data'/str(0))
     ),
     Need(aString('mutant_testresult')),
-    Phase('generate test results for mutants',
-        *[GenerateTestResultForMutant(mutant, f('${mutant_testresult}')/str(index+1), '${mutant_testresult}') for index, mutant in enumerate(FromDirectory('${mutant_source}').getMutants())]
-    )
+    DeleteFolder('${mutant_testresult}'),
+    GenerateTestResultForMutants('test mutants', '${mutant_testresult}', FromDirectory('${mutant_source}').getMutants()).fromMutant(None).to(None).by(None),
 ).do()
