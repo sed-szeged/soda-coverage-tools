@@ -5,6 +5,7 @@ from .call import *
 from .structure import *
 from .filetweak import *
 from .commonutil import *
+from .paralellutil import *
 
 class MutantCode:
     def __init__(self, source_path, list_path=None):
@@ -69,7 +70,7 @@ class GenerateTestResultForMutants(Phase):
         self._by = index
         return self
 
-    def _do(self):
+    def _preDo(self):
         _output_path = CleverString(self._output_path).value
         _from = None
         _to = None
@@ -83,9 +84,31 @@ class GenerateTestResultForMutants(Phase):
         _mutants = list(self._mutants[_from:_to:_by])
         self._steps = []
         for index, mutant in enumerate(_mutants):
-            real_index = noneToDef(self._from) + (index * noneToDef(self._by)) + 1
+            real_index = noneToDef(self._from) + (index * noneToDef(self._by, default=1)) + 1
             step = GenerateTestResultForMutant(mutant, f(_output_path)/'data'/str(real_index), _output_path)
             self._steps.append(step)
+
+    def _do(self):
+        self._preDo()
         super()._do()
+
+developers_of_soda = ['gergo_balogh', 'david_havas', 'david_tengeri', 'bela_vancsics']
+fruits = ['apple', 'cherry', 'apricot', 'avocado', 'banana', 'clementine', 'orange', 'grape']
+
+class ParalellGenerateTestResultForMutants(GenerateTestResultForMutants):
+    def __init__(self, name, output_path, mutants, name_of_workers=['gery']):
+        super().__init__(name, output_path, mutants)
+        self._name_of_workers = name_of_workers
+
+    def _do(self):
+        self._preDo()
+        _name_of_workers = [CleverString(name).value for name in self._name_of_workers]
+        pool = ThreadPool(name_of_workers=_name_of_workers)
+        indentOff()
+        for index, step in enumerate(self._steps):
+            print(info("Add step#%s to queue." % as_proper(index)))
+            pool.add_task(step.do)
+        pool.wait_completion()
+        indentOn()
 
 print(info("%s is loaded." % as_proper("Mutant handling")))

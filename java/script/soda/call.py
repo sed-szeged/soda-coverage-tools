@@ -24,9 +24,11 @@ class Call(Doable):
         else:
             print(warn("Quite mode enabled, all output of the external calls will redirect into log files."))
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
-            with open('Call_%s.log' % timestamp, 'w') as log:
+            thread_name = threading.current_thread().name
+            logfile_name = 'ON_%s_Call_%s.log' % (thread_name, timestamp)
+            with open(logfile_name, 'w') as log:
                 log.write('the exact command was the following:\n\n%s\n\n' % command)
-            with open('Call_%s.log' % timestamp, 'a') as log:
+            with open(logfile_name, 'a') as log:
                 sp.call(command, shell=True, stdout=log, stderr=log, *args, **kvargs)
 
 class CallRawDataReader(Call):

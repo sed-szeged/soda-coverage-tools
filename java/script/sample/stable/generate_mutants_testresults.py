@@ -12,6 +12,7 @@ Phase('generate mutants',
 ).do()
 
 Phase('generate test results',
+    DeleteFolder('${mutant_testresult}'),
     Phase('generate test results for original',
         Need(aString('original_source')),
         From(GitRepo('${git_url}')).to('${original_source}').checkout('sed-poms'),
@@ -19,6 +20,6 @@ Phase('generate test results',
         CollectFiles('${original_source}', f('target')/'jacoco'/'0'/'TestResults.r0', f('${mutant_testresult}')/'data'/str(0))
     ),
     Need(aString('mutant_testresult')),
-    DeleteFolder('${mutant_testresult}'),
-    GenerateTestResultForMutants('test mutants', '${mutant_testresult}', FromDirectory('${mutant_source}').getMutants()).fromMutant(None).to(None).by(None),
+    ParalellGenerateTestResultForMutants('test mutants', '${mutant_testresult}', FromDirectory('${mutant_source}').getMutants(), name_of_workers=developers_of_soda).fromMutant(0).to(3)
+#    GenerateTestResultForMutants('test mutants', '${mutant_testresult}', FromDirectory('${mutant_source}').getMutants()).fromMutant(0).to(3)
 ).do()

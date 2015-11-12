@@ -2,6 +2,7 @@ import abc
 import pdb
 from .feedback import *
 from itertools import tee
+import datetime
 
 print(info(as_proper("Logical structure")+" is loaded."))
 
@@ -51,6 +52,7 @@ class Phase(Doable):
     def __init__(self, name, *steps):
         self._name = name
         self._steps = steps
+        self._startstamp = datetime.datetime.now()
 
     @property
     def name(self):
@@ -68,6 +70,8 @@ class Phase(Doable):
             step.do()
             undent()
             print(info("} step#%d done." % i))
+            duration = datetime.datetime.now() - self._startstamp
+            print(info("last phase took %s minutes to execute." % as_sample('%.4f' % (duration.seconds/60))))
             bar.value = i / len(self._steps)
         bars.remove(bar)
 

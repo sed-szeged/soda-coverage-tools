@@ -4,6 +4,7 @@ import threading, time
 import pdb
 
 _indentlevel = 0
+_indented = True
 
 def indent():
     global _indentlevel
@@ -13,11 +14,22 @@ def undent():
     global _indentlevel
     _indentlevel -= 1
 
+def indentOn():
+    global _indented
+    _indented = True
+
+def indentOff():
+    global _indented
+    _indented = False
+
 def tagged(text, tag, delimiter='|'):
+    global _mark, _indented
     prefix = ''
-    for i in range(_indentlevel):
-        prefix += '%s  ' % delimiter
-    return '[%s] %s%s' % (tag, prefix, text)
+    _tag = '%s:%s' % (colored(threading.current_thread().name,'green'),tag)
+    if _indented:
+        for i in range(_indentlevel):
+            prefix += '%s  ' % delimiter
+    return '[%s] %s%s' % (_tag, prefix, text)
 
 def as_proper(name):
     return colored(name, 'yellow')
