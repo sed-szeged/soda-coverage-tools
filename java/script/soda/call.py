@@ -19,8 +19,13 @@ class Call(Doable):
         command = CleverString(self._command).value
         #command = CleverString(self._command).value.split(self._splitby)
         print(info('executing: %s' % command))
+        Need(aString('external_timeout')).do()
+        timeout = int(CleverString('${external_timeout}').value)
         if settings.mode > FeedbackModes.quite:
-            sp.call(command, shell=True, *args, **kvargs)
+            try:
+                sp.call(command, shell=True, timeout=timeout, *args, **kvargs)
+            except sp.TimeoutExpired:
+                print(error('External call was killed after %s seconds' % as_sample(timeout)))
         else:
             print(warn("Quite mode enabled, all output of the external calls will redirect into log files."))
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
@@ -28,8 +33,13 @@ class Call(Doable):
             logfile_name = 'ON_%s_Call_%s.log' % (thread_name, timestamp)
             with open(logfile_name, 'w') as log:
                 log.write('the exact command was the following:\n\n%s\n\n' % command)
-            with open(logfile_name, 'a') as log:
-                sp.call(command, shell=True, stdout=log, stderr=log, *args, **kvargs)
+            try:
+                with open(logfile_name, 'a') as log:
+                    sp.call(command, shell=True, stdout=log, stderr=log, timeout=timeout, *args, **kvargs)
+            except sp.TimeoutExpired:
+                print(error('External call was killed after %s seconds' % as_sample(timeout)))
+                with open(logfile_name, 'a') as log:
+                    log.write('\n\nExternal call was killed after %s seconds' % timeout)
 
 class CallRawDataReader(Call):
     def __init__(self, readerType, mode, granularity, path, output):

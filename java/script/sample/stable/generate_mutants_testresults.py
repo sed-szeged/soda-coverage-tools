@@ -3,6 +3,7 @@
 from soda import *
 
 Phase('generate mutants',
+    SetVariable(aString('external_timeout'), 60 ** 2),
     Need(aString('git_url')),
     Need(aString('annotated_source')),
     From(GitRepo('${git_url}')).to('${annotated_source}').checkout('sed-mutations'),
