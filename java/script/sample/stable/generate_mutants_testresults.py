@@ -1,4 +1,4 @@
-#python3.4 generate_mutants_testresults.py git_url=/home/geryxyz/repos/oryx.git original_source=/home/geryxyz/original_source annotated_source=/home/geryxyz/annotated_source mutant_source=/home/geryxyz/mutant_source mutation_type=return mutant_testresult=/home/geryxyz/mutants_testresults
+#python3.4 generate_mutants_testresults.py project=oryx git_url=/home/geryxyz/repos/oryx.git original_source=/home/geryxyz/original_source annotated_source=/home/geryxyz/annotated_source mutant_source=/home/geryxyz/mutant_source mutation_type=return mutant_testresult=/home/geryxyz/mutants_testresults soda_rawDataReader_path=/home/geryxyz/soda_build/cl/SoDATools/utilities/rawdatareader soda_testSuiteMetrics_path=/home/geryxyz/soda_build/cl/SoDATools/test-suite-metrics/test-suite-metrics
 
 from soda import *
 
@@ -9,11 +9,11 @@ Phase('generate mutants',
     From(GitRepo('${git_url}')).to('${annotated_source}').checkout('sed-mutations'),
     Need(aString('mutant_source')),
     Need(aString('mutation_type')),
+    DeleteFolder('${mutant_source}'),
     CreateMutants('${annotated_source}', '${mutant_source}', '${mutation_type}')
 ).do()
 
 Phase('generate test results',
-    DeleteFolder('${mutant_testresult}'),
     Phase('generate test results for original',
         Need(aString('original_source')),
         From(GitRepo('${git_url}')).to('${original_source}').checkout('sed-poms'),
@@ -21,6 +21,14 @@ Phase('generate test results',
         CollectFiles('${original_source}', f('target')/'jacoco'/'0'/'TestResults.r0', f('${mutant_testresult}')/'data'/str(0))
     ),
     Need(aString('mutant_testresult')),
-    ParalellGenerateTestResultForMutants('test mutants', '${mutant_testresult}', FromDirectory('${mutant_source}').getMutants(), name_of_workers=developers_of_soda).fromMutant(0).to(3)
-#    GenerateTestResultForMutants('test mutants', '${mutant_testresult}', FromDirectory('${mutant_source}').getMutants()).fromMutant(0).to(3)
+    ParalellGenerateTestResultForMutants(
+        'test mutants',
+        '${mutant_testresult}',
+        f('${mutant_source}')/'mutants.list.csv',
+        name_of_workers=developers_of_soda
+    ),
+    CreateResultsMatrix(f('${mutant_testresult}')/'data', 'dejagnu-one-revision-per-file', f('${mutant_testresult}')/'results-matrix'),
+    Need(aString('project')),
+    GenerateJSONConfig(f('${mutant_testresult}')/'config.JSON', f('${mutant_testresult}')/'results-matrix', '${project}', f('${mutant_testresult}')/'metric'),
+    GenerateTestScore(f('${mutant_testresult}')/'config.JSON')
 ).do()
