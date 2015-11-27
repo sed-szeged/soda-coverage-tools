@@ -2,8 +2,11 @@
 
 from soda import *
 
+Phase('init',
+    SetVariable(aString('external_timeout'), 60 ** 2)
+).do()
+
 Phase('generate mutants',
-    SetVariable(aString('external_timeout'), 60 ** 2),
     Need(aString('git_url')),
     Need(aString('annotated_source')),
     From(GitRepo('${git_url}')).to('${annotated_source}').checkout('sed-mutations'),
@@ -21,11 +24,11 @@ Phase('generate test results',
         CollectFiles('${original_source}', f('target')/'jacoco'/'0'/'TestResults.r0', f('${mutant_testresult}')/'data'/str(0))
     ),
     Need(aString('mutant_testresult')),
-    ParalellGenerateTestResultForMutants(
+    GenerateTestResultForMutants(
         'test mutants',
         '${mutant_testresult}',
-        f('${mutant_source}')/'mutants.list.csv',
-        name_of_workers=developers_of_soda
+        f('${mutant_source}')/'mutants.list.csv'#,
+        #name_of_workers=developers_of_soda
     ),
     CreateResultsMatrix(f('${mutant_testresult}')/'data', 'dejagnu-one-revision-per-file', f('${mutant_testresult}')/'results-matrix'),
     Need(aString('project')),
