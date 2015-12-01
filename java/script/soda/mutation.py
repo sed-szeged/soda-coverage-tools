@@ -23,6 +23,7 @@ class ModifySourceCode(Doable, metaclass=abc.ABCMeta):
     def _do(self, *args, **kvargs):
         _original_path = CleverString(self._original_path).value
         _result_path = CleverString(self._result_path).value
+        self.resolved_mutation_type = CleverString(self._mutation_type).value
         DeleteFolder(_result_path).do()
         Copy(_original_path, _result_path).do()
         sourceFiles = glob2.glob(str(f(_result_path) / '**' / '*.java'))

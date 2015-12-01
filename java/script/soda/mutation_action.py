@@ -10,7 +10,6 @@ class DetectMutationAction(SodaAnnotationAction):
         super().__init__(executor)
 
     def Apply(self, line, state, **kvargs):
-        _mutation_type = CleverString(self._executor._mutation_type).value
         if 'mutation_start' in state:
             del state['mutation_start']
         if 'mutation_end' in state:
@@ -18,7 +17,7 @@ class DetectMutationAction(SodaAnnotationAction):
         if self.stack:
             last = self.stack[-1]
             if last.keyword == 'begin' and last.param == 'mutation':
-                state['mutation_ignored'] = not last.data['type'] == _mutation_type
+                state['mutation_ignored'] = not last.data['type'] == self._executor.resolved_mutation_type
                 state['mutation_start'] = True
                 state['in_mutation'] = True
                 state['mutation_id'] = self.createID(last, **kvargs)
@@ -67,7 +66,7 @@ class CountMutationsAction(SodaAnnotationAction):
     def Apply(self, line, state, **kvargs):
         if self.stack:
             last = self.stack[-1]
-            if last.keyword == 'begin' and last.param == 'mutation' and last.data['type'] == self._executor._mutation_type:
+            if last.keyword == 'begin' and last.param == 'mutation' and last.data['type'] == self._executor.resolved_mutation_type:
                 state['mutation_index'] = state.get('mutation_index', -1) + 1
 
 

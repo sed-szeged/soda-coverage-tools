@@ -5,5 +5,6 @@ from soda import *
 Phase('generate instrumented code',
     Need(aString('annotated_source')),
     Need(aString('instrumented_source')),
+    DeleteFolder('${instrumented_source}'),
     CreateInstrumentedCodeBase('${annotated_source}', '${instrumented_source}', '${mutation_type}')
 ).do()

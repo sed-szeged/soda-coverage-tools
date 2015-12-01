@@ -3,6 +3,7 @@ from .structure import *
 from .feedback import *
 #from .log import *
 import sys
+import re
 
 print(info(as_proper("Needs")+" features are loaded."))
 
@@ -86,14 +87,18 @@ class CleverString(str):
     @property
     def value(self):
         global _variables
+        if not re.search(r'\$\{.+\}', self._value):
+            return self._value
 #        caller = caller_name(2)
 #        if '__init__' in caller:
 #            raise RuntimeError("Do not resolve CleverString in constructors. If you do not understand why, just do not do it!")
         processed = self._value
         #TODO: check substitution, inf. loop at unknown var
-        while '${' in processed:
-            for name in _variables:
-                variable = _variables[name]
-                processed = variable.substitute(processed)
-            print(info('resolved as: ' + processed))
+        for name in _variables:
+            variable = _variables[name]
+            processed = variable.substitute(processed)
+        print(info('resolved as: ' + processed))
+        if re.search(r'\$\{.+\}', processed):
+            print(error("Unresolved variable in string: '%s'" % as_sample(processed)))
+            pdb.set_trace()
         return processed
