@@ -27,10 +27,10 @@ class Call(Doable):
             except sp.TimeoutExpired:
                 print(error('External call was killed after %s seconds' % as_sample(timeout)))
         else:
-            print(warn("Quite mode enabled, all output of the external calls will redirect into log files."))
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
             thread_name = threading.current_thread().name
             logfile_name = 'ON_%s_Call_%s.log' % (thread_name, timestamp)
+            print(warn("Quite mode enabled, all output of the external calls will redirect into log files: '%s'" % as_sample(logfile_name)))
             with open(logfile_name, 'w') as log:
                 log.write('the exact command was the following:\n\n%s\n\n' % command)
             try:
@@ -42,16 +42,29 @@ class Call(Doable):
                     log.write('\n\nExternal call was killed after %s seconds' % timeout)
 
 class CallRawDataReader(Call):
-    def __init__(self, readerType, mode, granularity, path, output):
-        super().__init__('${soda_rawDataReader_path}/rawDataReader -t %s -m %s -g %s -p %s -o %s' % (readerType, mode, granularity, path, output))
+    def __init__(self, readerType, mode, granularity, path, output, listCodeElements):
+        args = ''
+        if readerType:
+            args += '-t %s ' % readerType
+        if mode:
+            args += '-m %s ' % mode
+        if granularity:
+            args += '-g %s ' % granularity
+        if path:
+            args += '-p %s ' % path
+        if output:
+            args += '-o %s ' % output
+        if listCodeElements:
+            args += '--list-code-elements %s' % listCodeElements
+        super().__init__('${soda_rawDataReader_path}/rawDataReader %s' % args)
 
     def _do(self, *args, **kvargs):
        Need(aString('soda_rawDataReader_path'))._do(*args, **kvargs)
        super()._do(*args, **kvargs)
 
 class CallMaven(Call):
-    def __init__(self, phases, profiles, *args, **kvargs):
-        super().__init__('mvn3.3 %s -P%s' % (' '.join(phases), ','.join(profiles)))
+    def __init__(self, goals, profiles, properties=[],  *args, **kvargs):
+        super().__init__('mvn3.3 %s -P%s %s' % (' '.join(goals), ','.join(profiles), ' '.join(['-D%s' % s for s in properties])))
         self._args = args
         self._kvargs = kvargs
         self._path = None

@@ -68,8 +68,8 @@ class CreateInstrumentedCodeBase(ModifySourceCode):
     def _init_actions(self):
         self._actions = [DetectMutationAction(self), DisableMutationAction(self), InsertInstrumentationCodeAction(self)]
 
-    def __init__(self, original_path, result_path, mutation_type):
-        super().__init__(original_path, result_path, mutation_type)
+    def __init__(self, original_path, result_path):
+        super().__init__(original_path, result_path, None)
         self.instrumentations = []
 
     def _do(self, *args, **kvargs):

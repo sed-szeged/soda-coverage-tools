@@ -83,11 +83,20 @@ class AddSodaProfileTo(Doable):
                 elem.text = "${argLine} " + elem.text
             tree.write(path)
 
-class TransformCoverageData(Call):
-    def __init__(self, src, goals='clean test'):
-        #super().__init__('pwd')
-        super().__init__('mvn3.3 %s hu.sed.soda.tools:soda-maven-plugin:report -Psoda-coverage' % (goals))
+class CoverageEngine:
+    Jacoco = 'jacoco'
+    Manual = 'manual'
+
+class TransformCoverageData(CallMaven):
+    def __init__(self, src, engine=CoverageEngine.Jacoco):
+        if engine == CoverageEngine.Jacoco:
+            super().__init__(goals=['clean', 'test', 'hu.sed.soda.tools:soda-maven-plugin:report'], profiles=['soda-coverage'])
+        elif engine == CoverageEngine.Manual:
+            super().__init__(goals=['clean', 'test'], profiles=['soda-manual-coverage'], properties=['maven.test.failure.ignore=true'])
+        else:
+            print(error("Unknown coverage engine: '%s'" % as_proper(engine)))
         self._src = src
 
     def _do(self, *args, **kvargs):
-        super()._do(cwd=CleverString(self._src).value)
+        self.From(CleverString(self._src).value)
+        super()._do()

@@ -4,6 +4,7 @@
 from soda import * 
 
 Phase('load arguments',
+    SetVariable(aString('external_timeout'), 3600),
     Need(aString('git_url')),
     Need(aString('source_path')),
     Need(aString('output_path'))
@@ -12,7 +13,7 @@ Phase('load arguments',
 Phase('run tests',
     From(GitRepo('${git_url}')).to('${source_path}').checkout('HEAD'),
     AddSodaProfileTo('${source_path}'),
-    TransformCoverageData('${source_path}'),
+    TransformCoverageData('${source_path}', engine=CoverageEngine.Jacoco),
     Restore('${source_path}'),
     CollectFiles('${source_path}', f('target')/'jacoco'/'coverage'/'xml', f('${output_path}')/'raw-coverage-data'/'xml'),
     CreateCovarageMatrix(f('${output_path}')/'raw-coverage-data'/'xml', MatrixGranuality.method, f('${output_path}')/'coverage-matrix'),

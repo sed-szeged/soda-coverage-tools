@@ -162,7 +162,7 @@ class CollectFiles(Doable):
                             outfile.write(line)
             else:
                 shutil.copy(f, to_path)
-            print(info("Copy %s to %s" % (as_proper(f),as_proper(to_path))))
+            print(info("Append %s to %s" % (as_proper(f),as_proper(to_path))))
 
 # TODO remove concurrent implementations below after single.py is properly updated
 class CollectFiles2(Doable): 

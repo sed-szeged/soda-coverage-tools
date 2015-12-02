@@ -5,6 +5,7 @@ from .soda_res import *
 import copy
 import json
 from .filetweak import *
+from .maven_cover import *
 
 class MatrixGranuality(object):
     package = "package"
@@ -13,8 +14,11 @@ class MatrixGranuality(object):
     method = "method"
 
 class CreateCovarageMatrix(CallRawDataReader):
-    def __init__(self, path, granularity, output):
-        super().__init__('coverage', 'jacoco-java', granularity, path, output)
+    def __init__(self, path, granularity, output, listCodeElements, engine=CoverageEngine.Jacoco):
+        if engine == CoverageEngine.Jacoco:
+            super().__init__(readerType='coverage', mode='jacoco-java', granularity=granularity, path=path, output=output, listCodeElements=None)
+        elif engine == CoverageEngine.Manual:
+            super().__init__(readerType='coverage', mode='simple-instrumentation-listener-java', granularity=None, path=path, output=output, listCodeElements=listCodeElements)
 
     def _do(self, *args, **kvargs):
         super()._do(*args, **kvargs)
