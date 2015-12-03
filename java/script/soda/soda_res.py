@@ -4,7 +4,8 @@ test_metrics_json_skeleton = {
     "revision": 0,
     "revision-timestamp": 0,
     "cluster-algorithm": "one-cluster",
-    "metrics": [ "results-score" ],
+    "metrics": [ ],
+    "mutation-metrics": [ "results-score" ],
     "base-metrics": [ "coverage", "partition-metric", "tpce", "T", "P" ],
     "metric-notations":
     {

@@ -27,6 +27,7 @@ class ModifySourceCode(Doable, metaclass=abc.ABCMeta):
         DeleteFolder(_result_path).do()
         Copy(_original_path, _result_path).do()
         sourceFiles = glob2.glob(str(f(_result_path) / '**' / '*.java'))
+        sourceFiles.sort()
         for source in sourceFiles:
             original = self.createBackupFile(source)
             with open(source, 'w') as source_file, open(original, 'r') as original_file:
@@ -113,8 +114,6 @@ class CreateMutants(Doable):
         _annoteted_path = CleverString(self._annoteted_path).value
         _mutants_path = CleverString(self._mutants_path).value
         _mutation_type = CleverString(self._mutation_type).value
-
-        DeleteFolder(_mutants_path).do()
 
         temp_path = f(_mutants_path)/'_temp'
         mutantCreator = ModifySourceCodeWithPersistentActionSate(
