@@ -25,7 +25,7 @@ class CreateCovarageMatrix(CallRawDataReader):
 
 class CreateResultsMatrix(CallRawDataReader):
     def __init__(self, path, reader, output):
-        super().__init__('results', reader, MatrixGranuality.method, path, output)
+        super().__init__('results', reader, MatrixGranuality.method, path, output, listCodeElements=None)
 
     def _do(self, *args, **kvargs):
         super()._do(*args, **kvargs)

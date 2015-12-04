@@ -1,4 +1,4 @@
-#python3.4 generate_mutants_testresults.py project=oryx git_url=/home/geryxyz/repos/oryx.git original_source=/home/geryxyz/original_source annotated_source=/home/geryxyz/annotated_source mutant_source=/home/geryxyz/mutant_source mutation_type=return mutant_testresult=/home/geryxyz/mutants_testresults soda_rawDataReader_path=/home/geryxyz/soda_build/cl/SoDATools/utilities/rawdatareader soda_testSuiteMetrics_path=/home/geryxyz/soda_build/cl/SoDATools/test-suite-metrics/test-suite-metrics
+#python3.4 generate_mutants_testresults.py git_url=/home/geryxyz/repos/oryx.git original_source=/home/geryxyz/original_source annotated_source=/home/geryxyz/annotated_source mutant_source=/home/geryxyz/mutant_source mutation_type=return mutant_testresult=/home/geryxyz/mutants_testresults
 
 from soda import *
 
@@ -26,11 +26,6 @@ Phase('generate test results',
     GenerateTestResultForMutants(
         'test mutants',
         '${mutant_testresult}',
-        f('${mutant_source}')/'mutants.list.csv'#,
-        #name_of_workers=developers_of_soda
+        f('${mutant_source}')/'mutants.list.csv'
     ),
-    CreateResultsMatrix(f('${mutant_testresult}')/'data', 'dejagnu-one-revision-per-file', f('${mutant_testresult}')/'results-matrix'),
-    Need(aString('project')),
-    GenerateJSONConfig(f('${mutant_testresult}')/'config.JSON', f('${mutant_testresult}')/'results-matrix', '${project}', f('${mutant_testresult}')/'metric'),
-    GenerateTestScore(f('${mutant_testresult}')/'config.JSON')
 ).do()

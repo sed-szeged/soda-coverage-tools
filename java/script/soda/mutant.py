@@ -31,7 +31,10 @@ class GenerateTestResultForMutant(Doable):
         _source_path = CleverString(self._mutant.source_path).value
         print(info("Generate test results for mutants at '%s'" % as_proper(_source_path)))
         _output_path = CleverString(self._output_path).value
-        self._mutant.generateTestResults(_output_path).do()
+        if os.path.isdir(_output_path):
+            print(warn("Skipping test result generation for %s: mutant folder already present." % as_sample(_output_path)))
+        else:
+            self._mutant.generateTestResults(_output_path).do()
         if not os.listdir(_output_path):
             DeleteFolder(_output_path).do()
         _list_path = CleverString(self._list_path).value
