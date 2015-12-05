@@ -211,7 +211,7 @@ public class CustomTestExecutionListener extends RunListener implements ITestLis
 
   @Override
   public void testRunStarted(Description description) throws Exception {
-    LOGGER.info("TEST RUN STARTED");
+    LOGGER.info("JUNIT TEST RUN STARTED");
   }
 
   @Override
@@ -229,7 +229,7 @@ public class CustomTestExecutionListener extends RunListener implements ITestLis
 
     handleEvent(description, JUnitStatus.STARTED);
 
-    //resetCoverage();
+    reset = dump = 0;
 
     super.testStarted(description);
   }
@@ -251,11 +251,9 @@ public class CustomTestExecutionListener extends RunListener implements ITestLis
   @Override
   public void testFinished(Description description) throws Exception {
     handleEvent(description, JUnitStatus.FINISHED);
-
-    //dumpCoverage();
     
     if (!(reset == 1 && dump == 1)) {
-      throw new IllegalStateException(actualTestInfo.getTestName() + " was not instrumented properly.");
+      throw new Error(String.format("%s was not instrumented properly, D=%d R=%d", actualTestInfo.getTestName(), dump, reset));
     }
 
     super.testFinished(description);
@@ -263,7 +261,7 @@ public class CustomTestExecutionListener extends RunListener implements ITestLis
 
   @Override
   public void testRunFinished(Result result) throws Exception {
-    LOGGER.info(String.format("TEST RUN FINISHED in %dms", result.getRunTime()));
+    LOGGER.info(String.format("JUNIT TEST RUN FINISHED in %dms", result.getRunTime()));
     LOGGER.info(String.format("JUnit stats: {tests=%d, ignored=%d, failed=%d}", result.getRunCount(), result.getIgnoreCount(), result.getFailureCount()));
     LOGGER.info(String.format("Listener stats: %s", testStats));
 
@@ -291,10 +289,8 @@ public class CustomTestExecutionListener extends RunListener implements ITestLis
     LOGGER.info(String.format("%s %s", testName, status));
 
     if (status != TestNGStatus.STARTED && status != TestNGStatus.SKIPPED) {
-      //dumpCoverage();
-      
       if (!(reset == 1 && dump == 1)) {
-        throw new IllegalStateException(actualTestInfo.getTestName() + " was not instrumented properly.");
+        throw new Error(String.format("%s was not instrumented properly, D=%d R=%d", actualTestInfo.getTestName(), dump, reset));
       }
     }
   }
@@ -303,7 +299,7 @@ public class CustomTestExecutionListener extends RunListener implements ITestLis
   public void onTestStart(ITestResult result) {
     handleEvent(result);
 
-    //resetCoverage();
+    reset = dump = 0;
   }
 
   @Override
@@ -328,12 +324,12 @@ public class CustomTestExecutionListener extends RunListener implements ITestLis
 
   @Override
   public void onStart(ITestContext context) {
-    LOGGER.info(String.format("TEST (%s) STARTED", context.getName()));
+    LOGGER.info(String.format("TESTNG TEST (%s) STARTED", context.getName()));
   }
 
   @Override
   public void onFinish(ITestContext context) {
-    LOGGER.info(String.format("TEST (%s) FINISHED in %dms", context.getName(), context.getEndDate().getTime() - context.getStartDate().getTime()));
+    LOGGER.info(String.format("TESTNG TEST (%s) FINISHED in %dms", context.getName(), context.getEndDate().getTime() - context.getStartDate().getTime()));
     LOGGER.info(String.format("TestNG stats: {tests=%d, skipped=%d, succeeded=%d, failed=%d, percent=%d, index=%d}",
         context.getAllTestMethods().length, context.getSkippedTests().size(), context.getPassedTests().size(), context.getFailedTests().size(), context.getFailedButWithinSuccessPercentageTests().size(), testIndex));
 
