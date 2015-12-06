@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <extension
+         point="org.eclipse.ui.popupMenus">
+      <objectContribution
+            objectClass="org.eclipse.jdt.core.IPackageFragment"
+            id="SoDA.popupContribution">
+         <menu
+               label="SoDA"
+               path="additions"
+               id="SoDA.menu">
+            <separator
+                  name="group">
+            </separator>
+         </menu>
+         <action
+               label="Instrument"
+               class="hu.sed.soda.eclipse.plugin.actions.InstrumenterAction"
+               menubarPath="SoDA.menu/group"
+               enablesFor="+"
+               id="SoDA.instrumenterAction">
+         </action>
+      </objectContribution>
+   </extension>
+
+</plugin>
