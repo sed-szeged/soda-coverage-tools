@@ -15,6 +15,7 @@ Phase('run tests',
         CallMaven(['clean', 'test'], ['soda-dump-test-results']).From(f('${source_path}')/'0'),
         CollectFiles(f('${source_path}')/'0', f('target')/'jacoco'/'0'/'TestResults.r0', f('${output_path}')/'data0')
     ),
+    Wait(30),
     Phase('generate test results for #1',
         From(GitRepo('${git_url}')).to(f('${source_path}')/'1').checkout('sed-poms'),
         CallMaven(['clean', 'test'], ['soda-dump-test-results']).From(f('${source_path}')/'1'),
