@@ -1,7 +1,6 @@
 from termcolor import colored
 import sys, re
 import threading, time
-from .timeutil import *
 import pdb
 
 _indentlevel = 0
