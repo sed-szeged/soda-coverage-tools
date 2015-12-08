@@ -13,7 +13,7 @@ class Wait(Doable):
         self._seconds = seconds
 
     def _do(self, *args, **kvargs):
-        _seconds = CleverString(self._seconds).value
+        _seconds = float(CleverString(self._seconds).value)
         print(warn("Waiting (doing nothing) for %s seconds." % as_sample(_seconds)))
         time.sleep(_seconds)
 
