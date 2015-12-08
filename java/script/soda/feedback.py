@@ -26,7 +26,7 @@ def indentOff():
 def tagged(text, tag, delimiter='|'):
     global _mark, _indented
     prefix = ''
-    _tag = '%s:%s:%s' % (timestamp(), colored(threading.current_thread().name,'green'),tag)
+    _tag = '%s:%s' % (colored(threading.current_thread().name,'green'),tag)
     if _indented:
         for i in range(_indentlevel):
             prefix += '%s  ' % delimiter
