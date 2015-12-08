@@ -1,4 +1,4 @@
-#python3.4 calculate_testscore.py project=oryx mutant_testresult=/home/geryxyz/mutants_testresults soda_rawDataReader_path=/home/geryxyz/soda_build/cl/SoDATools/utilities/rawdatareader soda_testSuiteMetrics_path=/home/geryxyz/soda_build/cl/SoDATools/test-suite-metrics/test-suite-metrics
+#python3.4 calculate_testscore.py mutant_testresult=/home/geryxyz/soda-results/mutation/mapdb/if/mutants_testresults soda_rawDataReader_path=/home/geryxyz/soda_build/cl/SoDATools/utilities/rawdatareader soda_mutationScore_path=/home/geryxyz/soda_build/cl/SoDATools/mutation-score/mutation-score
 
 from soda import *
 
@@ -9,7 +9,5 @@ Phase('init',
 Phase('generate test results',
     Need(aString('mutant_testresult')),
     CreateResultsMatrix(f('${mutant_testresult}')/'data', 'dejagnu-one-revision-per-file', f('${mutant_testresult}')/'results-matrix'),
-    Need(aString('project')),
-    GenerateJSONConfig(f('${mutant_testresult}')/'config.JSON', f('${mutant_testresult}')/'results-matrix', '${project}', f('${mutant_testresult}')/'metric'),
-    GenerateTestScore(f('${mutant_testresult}')/'config.JSON')
+    GenerateTestScore(f('${mutant_testresult}')/'results-matrix', f('${mutant_testresult}')/'metric'/'testscore.csv')
 ).do()

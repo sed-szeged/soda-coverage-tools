@@ -29,3 +29,8 @@ Phase('generate test results',
         f('${mutant_source}')/'mutants.list.csv'
     ),
 ).do()
+
+Phase('clean up',
+      DeleteFolder('${annotated_source}'),
+      DeleteFolder('${original_source}')
+).do()

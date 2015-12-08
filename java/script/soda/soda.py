@@ -51,6 +51,6 @@ class GenerateJSONConfig(Doable):
         print(info("SoDA config file is written to '%s'." % as_proper(_config_path)))
 
 class GenerateTestScore(Call):
-    def __init__(self, config_path):
-        Need(aString('soda_testSuiteMetrics_path')).do()
-        super().__init__("%s %s" % ('${soda_testSuiteMetrics_path}', config_path))
+    def __init__(self, matrix, output):
+        Need(aString('soda_mutationScore_path')).do()
+        super().__init__("%s -r %s -o %s" % ('${soda_mutationScore_path}', matrix, output))
