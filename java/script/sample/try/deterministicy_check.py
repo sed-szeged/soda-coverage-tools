@@ -21,5 +21,5 @@ Phase('run tests',
         CallMaven(['clean', 'test'], ['soda-dump-test-results']).From(f('${source_path}')/'1'),
         CollectFiles(f('${source_path}')/'1', f('target')/'jacoco'/'0'/'TestResults.r0', f('${output_path}')/'data1')
     ),
-    ForwardCompareTestResult(f('${output_path}')/'data0'/'TestResults.r0', f('${output_path}')/'data1'/'TestResults.r0', f('${output_path}')/'deltas.csv')
+    ForwardCompareTestResult(f('${output_path}')/'data0'/'TestResults.r0', f('${output_path}')/'data1'/'TestResults.r0', f('${output_path}')/'deltas.csv', f('${output_path}')/'deltas.summary.csv')
 ).do()

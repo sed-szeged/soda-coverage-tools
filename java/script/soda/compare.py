@@ -17,16 +17,20 @@ class TestResultDelta:
         output.write('\n')
 
 class ForwardCompareTestResult(Doable):
-    def __init__(self, testresult0, testresult1, delta_path):
+    def __init__(self, testresult0, testresult1, delta_path, summary_path):
         self._testresult0 = testresult0
         self._testresult1 = testresult1
         self._delta_path = delta_path
+        self._summary_path = summary_path
 
     def _do(self, *args, **kvargs):
         _testresult0 = CleverString(self._testresult0).value
         _testresult1 = CleverString(self._testresult1).value
         _delta_path = CleverString(self._delta_path).value
+        _summary_path = CleverString(self._summary_path).value
         deltas = []
+        count0 = 0
+        count1 = 0
         with open(_testresult0) as res0, open(_testresult1) as res1:
             count0 = sum(1 for _ in res0)
             count1 = sum(1 for _ in res1)
@@ -46,6 +50,9 @@ class ForwardCompareTestResult(Doable):
         with open(_delta_path, 'w') as output:
             for delta in deltas:
                 delta.writeTo(output)
+        print(info("writing summary to %s." % as_proper(_summary_path)))
+        with open(_summary_path, 'a') as summary:
+            summary.write('%s, %d, %d, %d\n' % (_delta_path, count0, count1, len(deltas)))
 
     def _splitEntry(self, entry):
         parts = entry.strip().split(': ')
