@@ -1,5 +1,5 @@
 #usage (example):
-#python3.4 deterministicy_check.py git_url=https://github.com/junit-team/junit.git source_path=/home/geryxyz/deterministicy_test output_path=/home/geryxyz/deterministicy_test_result soda_rawDataReader_path=/home/geryxyz/soda_build/cl/SoDATools/utilities/rawdatareader soda_coverageComparator_path=/home/geryxyz/soda_build/cl/SoDATools/coverage-comparator
+#python3.4 deterministicy_check.py git_url=/home/geryxyz/repos/oryx.git source_path=/home/geryxyz/deterministicy_test output_path=/home/geryxyz/deterministicy_test_result
 
 from soda import *
 
@@ -10,13 +10,15 @@ Phase('load arguments',
 ).do()
 
 Phase('run tests',
-    IsDeterministic(f('${output_path}')/'coverage-matrix_*'),
-    From(GitRepo('${git_url}')).to('${source_path}').checkout('HEAD'),
-    AddSodaProfileTo('${source_path}'),
-    TransformCoverageData('${source_path}'),
-    Restore('${source_path}'),
-    CollectFiles('${source_path}', f('target')/'jacoco'/'coverage'/'xml', f('${output_path}')/'raw-coverage-data'/'xml'),
-    CreateCovarageMatrix(f('${output_path}')/'raw-coverage-data'/'xml', MatrixGranuality.method, f('${output_path}')/('coverage-matrix_%s' % timestamp())),
-    CollectFiles('${source_path}', f('target')/'jacoco'/'0'/'TestResults.r0', f('${output_path}')/'raw-test-data'/'0'),
-    CreateResultsMatrix(f('${output_path}')/'raw-test-data', 'dejagnu-one-revision-per-file', f('${output_path}')/('results-matrix_%s' % timestamp()))
+    Phase('generate test results for #0',
+        From(GitRepo('${git_url}')).to(f('${source_path}')/'0').checkout('sed-poms'),
+        CallMaven(['clean', 'test'], ['soda-dump-test-results']).From(f('${source_path}')/'0'),
+        CollectFiles(f('${source_path}')/'0', f('target')/'jacoco'/'0'/'TestResults.r0', f('${output_path}')/'data0')
+    ),
+    Phase('generate test results for #1',
+        From(GitRepo('${git_url}')).to(f('${source_path}')/'1').checkout('sed-poms'),
+        CallMaven(['clean', 'test'], ['soda-dump-test-results']).From(f('${source_path}')/'1'),
+        CollectFiles(f('${source_path}')/'1', f('target')/'jacoco'/'0'/'TestResults.r0', f('${output_path}')/'data1')
+    ),
+    ForwardCompareTestResult(f('${output_path}')/'data0'/'TestResults.r0', f('${output_path}')/'data1'/'TestResults.r0', f('${output_path}')/'deltas.csv')
 ).do()
