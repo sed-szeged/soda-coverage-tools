@@ -4,6 +4,7 @@
 from soda import *
 
 Phase('load arguments',
+    SetVariable(aString('external_timeout'),3600),
     Need(aString('git_url')),
     Need(aString('source_path')),
     Need(aString('output_path'))
@@ -21,5 +22,12 @@ Phase('run tests',
         CallMaven(['clean', 'test'], ['soda-dump-test-results']).From(f('${source_path}')/'1'),
         CollectFiles(f('${source_path}')/'1', f('target')/'jacoco'/'0'/'TestResults.r0', f('${output_path}')/'data1')
     ),
-    ForwardCompareTestResult(f('${output_path}')/'data0'/'TestResults.r0', f('${output_path}')/'data1'/'TestResults.r0', f('${output_path}')/'deltas.csv', f('${output_path}')/'deltas.summary.csv')
+    ForwardCompareTestResult(f('${output_path}')/'data0'/'TestResults.r0', f('${output_path}')/'data1'/'TestResults.r0', f('${output_path}')/'deltas-short0.csv', f('${output_path}')/'deltas.summary.csv'),
+    Wait(86400),
+    Phase('generate test results for #2',
+        From(GitRepo('${git_url}')).to(f('${source_path}')/'2').checkout('sed-poms'),
+        CallMaven(['clean', 'test'], ['soda-dump-test-results']).From(f('${source_path}')/'2'),
+        CollectFiles(f('${source_path}')/'2', f('target')/'jacoco'/'0'/'TestResults.r0', f('${output_path}')/'data2')
+    ),
+    ForwardCompareTestResult(f('${output_path}')/'data1'/'TestResults.r0', f('${output_path}')/'data2'/'TestResults.r0', f('${output_path}')/'deltas-long0.csv', f('${output_path}')/'deltas.summary.csv'),
 ).do()
