@@ -16,18 +16,19 @@ Phase('run tests',
         CallMaven(['clean', 'test'], ['soda-dump-test-results']).From(f('${source_path}')/'0'),
         CollectFiles(f('${source_path}')/'0', f('target')/'jacoco'/'0'/'TestResults.r0', f('${output_path}')/'data0')
     ),
-    Wait(30),
+    Wait(15 * 60),
     Phase('generate test results for #1',
         From(GitRepo('${git_url}')).to(f('${source_path}')/'1').checkout('sed-poms'),
         CallMaven(['clean', 'test'], ['soda-dump-test-results']).From(f('${source_path}')/'1'),
         CollectFiles(f('${source_path}')/'1', f('target')/'jacoco'/'0'/'TestResults.r0', f('${output_path}')/'data1')
     ),
-    ForwardCompareTestResult(f('${output_path}')/'data0'/'TestResults.r0', f('${output_path}')/'data1'/'TestResults.r0', f('${output_path}')/'deltas-short0.csv', f('${output_path}')/'deltas.summary.csv'),
-    Wait(86400),
+    Wait(15 * 60),
     Phase('generate test results for #2',
         From(GitRepo('${git_url}')).to(f('${source_path}')/'2').checkout('sed-poms'),
         CallMaven(['clean', 'test'], ['soda-dump-test-results']).From(f('${source_path}')/'2'),
         CollectFiles(f('${source_path}')/'2', f('target')/'jacoco'/'0'/'TestResults.r0', f('${output_path}')/'data2')
     ),
-    ForwardCompareTestResult(f('${output_path}')/'data1'/'TestResults.r0', f('${output_path}')/'data2'/'TestResults.r0', f('${output_path}')/'deltas-long0.csv', f('${output_path}')/'deltas.summary.csv'),
+    ForwardCompareTestResult(f('${output_path}')/'data0'/'TestResults.r0', f('${output_path}')/'data1'/'TestResults.r0', f('${output_path}')/'deltas-short0_1.csv', f('${output_path}')/'deltas.summary.csv'),
+    ForwardCompareTestResult(f('${output_path}')/'data1'/'TestResults.r0', f('${output_path}')/'data2'/'TestResults.r0', f('${output_path}')/'deltas-short1_2.csv', f('${output_path}')/'deltas.summary.csv'),
+    ForwardCompareTestResult(f('${output_path}')/'data0'/'TestResults.r0', f('${output_path}')/'data2'/'TestResults.r0', f('${output_path}')/'deltas-short0_2.csv', f('${output_path}')/'deltas.summary.csv'),
 ).do()
