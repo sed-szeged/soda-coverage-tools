@@ -57,7 +57,7 @@ public class InstrumenterAction implements IObjectActionDelegate {
     if (window != null) {
       IStructuredSelection selection = (IStructuredSelection) window.getSelectionService().getSelection();
 
-      Instrumenter instrumenter = new Instrumenter();
+      final Instrumenter instrumenter = new Instrumenter();
 
       for (Object element : selection.toList()) {
         if (element instanceof IAdaptable) {
@@ -73,7 +73,7 @@ public class InstrumenterAction implements IObjectActionDelegate {
         }
       }
 
-      int n = instrumenter.getNumUnits();
+      final int n = instrumenter.getNumUnits();
 
       if (n > 0) {
         Job job = new Job("SoDA") {
