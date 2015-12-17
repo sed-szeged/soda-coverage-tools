@@ -74,7 +74,7 @@ class CreateInstrumentedCodeBase(ModifySourceCode):
         self.instrumentations = []
 
     def _do(self, *args, **kvargs):
-        super()._do(*arg, **kvargs)
+        super()._do(*args, **kvargs)
         _result_path = CleverString(self._result_path).value
         _instrumentation_log_path = f(_result_path)/'instrumentation.log.txt'
         with open(str(_instrumentation_log_path), 'w') as log:

@@ -94,6 +94,9 @@ class Copy(Doable):
         to_path = CleverString(self._to_path).value
         if os.path.isfile(from_path):
             print(info("Copy file %s to %s." % (as_proper(from_path), as_proper(to_path))))
+            to_dir = os.path.dirname(to_path)
+            if not os.path.exists(to_dir):
+                os.makedirs(to_dir)
             shutil.copy(from_path, to_path)
         elif os.path.isdir(from_path):
             print(info("Copy directory tree %s to %s." % (as_proper(from_path), as_proper(to_path))))
@@ -106,10 +109,11 @@ class Copy(Doable):
             print(error("%s is neither a file nor directory." % as_proper(from_path)))
 
 class CopyMatching(Doable):
-    def __init__(self, from_path, to_path, pattern):
+    def __init__(self, from_path, to_path, pattern, preserve_relative_path=True):
         self._from_path = from_path
         self._to_path = to_path
         self._pattern = pattern
+        self._preserve_relative_path = preserve_relative_path
 
     def _do(self, *args, **kvargs):
         from_path = CleverString(self._from_path).value
@@ -117,7 +121,11 @@ class CopyMatching(Doable):
         pattern = CleverString(self._pattern).value
         matching_files = glob2.glob(from_path + '/' + pattern)
         for p in matching_files:
-            Copy(p, p.replace(from_path, to_path)).do()
+            if self._preserve_relative_path:
+                target_path = p.replace(from_path, to_path)
+            else:
+                target_path = f(to_path)/os.path.basename(p)
+            Copy(p, target_path).do()
 
 class DeleteFolder(Doable):
     def __init__(self, folder):

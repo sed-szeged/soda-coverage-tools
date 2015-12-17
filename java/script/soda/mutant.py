@@ -1,12 +1,12 @@
-from .feedback import *
-from .filesystem import *
-from .soda import *
-from .call import *
-from .structure import *
-from .filetweak import *
-from .commonutil import *
-from .paralellutil import *
+from abc import abstractmethod
+from abc import ABCMeta
 import os
+
+from .call import *
+from .filetweak import *
+from .paralellutil import *
+from soda import CleverString, info, as_sample, as_proper
+
 
 class MutantCode:
     def __init__(self, entry):
@@ -18,7 +18,14 @@ class MutantCode:
         _source_path = CleverString(self.source_path).value
         return Phase('generate test results for mutant',
             CallMaven(['clean', 'test'], ['soda-dump-test-results']).From(_source_path),
-            CollectFiles(self.source_path, f('target')/'jacoco'/'0'/'TestResults.r0', f(output_path)),
+            CollectFiles(self.source_path, f('target')/'clover'/'TestResults.r0', output_path),
+        )
+
+    def generateCoverageData(self, output_path):
+        _source_path = CleverString(self.source_path).value
+        return Phase('generate coverage data for mutant',
+            CallMaven(goals=['clean', 'clover2:setup', 'test clover2:aggregate', 'clover2:clover'], properties=['maven.test.failure.ignore=true'], profiles=['soda-clover-coverage']).From(_source_path),
+            CopyMatching(self.source_path, output_path, f('target')/'clover'/'*.db', preserve_relative_path=False)
         )
 
 class GenerateTestResultForMutant(Doable):
@@ -41,7 +48,8 @@ class GenerateTestResultForMutant(Doable):
         with open(str(f(_list_path)/'mutants.list.csv'), 'a') as hid:
             hid.write('%s;%s\n' % (';'.join(self._mutant.entry), _output_path))
 
-class GenerateTestResultForMutants(Phase):
+
+class ProcessMutantsPhase(Phase, metaclass=ABCMeta):
     def __init__(self, name, output_path, list_path):
         super().__init__(name)
         self.mutants = []
@@ -63,23 +71,9 @@ class GenerateTestResultForMutants(Phase):
         self._by = index
         return self
 
-    def _preDo(self):
-        _output_path = CleverString(self._output_path).value
-        _list_path = CleverString(self._list_path).value
-
-        self.loadMutants(_list_path)
-        self.generateRealIndexes()
-        _by, _from, _to = self.processSliceParameters()
-        self.generateSteps(_by, _from, _output_path, _to)
-
+    @abstractmethod
     def generateSteps(self, _by, _from, _output_path, _to):
-        self._steps = []
-        for mutant in self.mutants[_from:_to:_by]:
-            print(info("Creating step for mutant '%s'" % as_proper(mutant.key)))
-            if not hasattr(mutant, 'real_index'):
-                pdb.set_trace()
-            step = GenerateTestResultForMutant(mutant, f(_output_path) / 'data' / str(mutant.real_index), _output_path)
-            self._steps.append(step)
+        pass
 
     def processSliceParameters(self):
         _from = None
@@ -109,9 +103,28 @@ class GenerateTestResultForMutants(Phase):
         self.mutants = sorted(self.mutants, key=lambda m: m.key)
         print(info("%d mutants were loaded from '%s'" % (len(self.mutants), as_proper(_list_path))))
 
+    def _preDo(self):
+        _output_path = CleverString(self._output_path).value
+        _list_path = CleverString(self._list_path).value
+
+        self.loadMutants(_list_path)
+        self.generateRealIndexes()
+        _by, _from, _to = self.processSliceParameters()
+        self.generateSteps(_by, _from, _output_path, _to)
+
     def _do(self):
         self._preDo()
         super()._do()
+
+class GenerateTestResultForMutants(ProcessMutantsPhase):
+    def generateSteps(self, _by, _from, _output_path, _to):
+        self._steps = []
+        for mutant in self.mutants[_from:_to:_by]:
+            print(info("Creating step for mutant '%s'" % as_proper(mutant.key)))
+            if not hasattr(mutant, 'real_index'):
+                pdb.set_trace()
+            step = GenerateTestResultForMutant(mutant, f(_output_path) / 'data' / str(mutant.real_index), _output_path)
+            self._steps.append(step)
 
 developers_of_soda = ['gergo_balogh', 'david_havas', 'david_tengeri', 'bela_vancsics']
 fruits = ['apple', 'cherry', 'apricot', 'avocado', 'banana', 'clementine', 'orange', 'grape']
@@ -131,5 +144,36 @@ class ParalellGenerateTestResultForMutants(GenerateTestResultForMutants):
             pool.add_task(step.do)
         pool.wait_completion()
         indentOn()
+
+
+class GenerateCoverageDataForMutant(Doable):
+    def __init__(self, mutant, output_path, list_path):
+        self._mutant = mutant
+        self._output_path = output_path
+        self._list_path = list_path
+
+    def _do(self, *args, **kvargs):
+        _source_path = CleverString(self._mutant.source_path).value
+        print(info("Generate coverage data for mutants at '%s'" % as_proper(_source_path)))
+        _output_path = CleverString(self._output_path).value
+        if os.path.isdir(_output_path):
+            print(warn("Skipping coverage data generation for %s: mutant folder already present." % as_sample(_output_path)))
+        else:
+            self._mutant.generateCoverageData(_output_path).do()
+        if not os.listdir(_output_path):
+            DeleteFolder(_output_path).do()
+        _list_path = CleverString(self._list_path).value
+        with open(str(f(_list_path)/'mutants.list.csv'), 'a') as hid:
+            hid.write('%s;%s\n' % (';'.join(self._mutant.entry), _output_path))
+
+class GenerateCoveragedataForMutants(ProcessMutantsPhase):
+    def generateSteps(self, _by, _from, _output_path, _to):
+        self._steps = []
+        for mutant in self.mutants[_from:_to:_by]:
+            print(info("Creating step for mutant '%s'" % as_proper(mutant.key)))
+            if not hasattr(mutant, 'real_index'):
+                pdb.set_trace()
+            step = GenerateCoverageDataForMutant(mutant, f(_output_path) / 'data' / str(mutant.real_index), _output_path)
+            self._steps.append(step)
 
 print(info("%s is loaded." % as_proper("Mutant handling")))
