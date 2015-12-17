@@ -4,10 +4,12 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
@@ -63,6 +65,7 @@ public class CustomTestExecutionListener extends RunListener implements ITestLis
   
   private static int reset = 0;
   private static int dump = 0;
+  private static Stack<Integer> idStack = new Stack<Integer>();
 
   /**
    * Initializes the output directory and the log output stream.
@@ -160,32 +163,63 @@ public class CustomTestExecutionListener extends RunListener implements ITestLis
   /**
    * Resets the actual coverage.
    */
-  public static void resetCoverage() {
-    ++reset;
-    
-    try {
-      ExecDumpClient client = new ExecDumpClient();
-      client.setReset(true);
-      client.setDump(false);
+  public static void resetCoverage(int id) {
+    boolean doReset = false;
 
-      client.dump(Constants.JACOCO_AGENT_ADDRESS, Constants.JACOCO_AGENT_PORT);
-    } catch (IOException e) {
-      LOGGER.warning("Cannot reset coverage because: " + e.getMessage());
+    if (idStack.isEmpty()) {
+      doReset = true;
+    }
+
+    idStack.push(id);
+
+    if (doReset) {
+      ++reset;
+
+      try {
+        ExecDumpClient client = new ExecDumpClient();
+        client.setReset(true);
+        client.setDump(false);
+
+        client.dump(Constants.JACOCO_AGENT_ADDRESS, Constants.JACOCO_AGENT_PORT);
+      } catch (IOException e) {
+        LOGGER.warning("Cannot reset coverage because: " + e.getMessage());
+      }
     }
   }
   
   /**
    * Saves then resets the actual coverage.
    */
-  public static void dumpCoverage() {
-    ++dump;
-    
-    File coverageFile = new File(outputDirectory, actualTestInfo.getHash() + '.' + Constants.COVERAGE_FILE_EXT);
+  public static void dumpCoverage(int id) {
+    boolean doDump = false;
+    int act;
 
-    if (dumpAndResetCoverage(coverageFile)) {
-      testResults.add(actualTestInfo);
+    try {
+      act = idStack.peek();
+    } catch (EmptyStackException e) {
+      throw new Error(String.format("Stack was empty when tried to dump at #%d.", id));
+    }
+
+    if (act == id) {
+      idStack.pop();
     } else {
-      LOGGER.warning(String.format("Coverage data already exists for test '%s' in file '%s'", actualTestInfo.getTestName(), coverageFile.getPath()));
+      throw new Error(String.format("Reset/dump got desyncronized on dump at #%d.", id));
+    }
+
+    if (idStack.isEmpty()) {
+      doDump = true;
+    }
+
+    if (doDump) {
+      ++dump;
+      File coverageFile = new File(outputDirectory, actualTestInfo.getHash() + '.' + Constants.COVERAGE_FILE_EXT);
+
+      if (dumpAndResetCoverage(coverageFile)) {
+        testResults.add(actualTestInfo);
+      } else {
+        LOGGER.warning(String.format("Coverage data already exists for test '%s' in file '%s'",
+            actualTestInfo.getTestName(), coverageFile.getPath()));
+      }
     }
   }
 
