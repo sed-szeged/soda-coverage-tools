@@ -19,8 +19,8 @@ public class Main {
   }
 
   public static void main(String[] args) throws CloverException, FileNotFoundException {
-    if (args.length != 1) {
-      System.out.println("Usage: clover.jar <clover.db>");
+    if (args.length != 2) {
+      System.out.println("Usage: clover.jar <clover.db> <output>");
 
       return;
     }
@@ -58,7 +58,7 @@ public class Main {
       addCoverage(db, matrix, out);
     }
 
-    matrix.save("method.cov.SoDA");
+    matrix.save(args[1]);
     matrix.dispose();
   }
 
