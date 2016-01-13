@@ -195,7 +195,7 @@ class ConvertCloverCoverageDataToSodaMatrix(Call):
         except FileNotFoundError as e:
             print(error("Neither %s nor %s have found." % (as_proper(mergeData), as_proper(singleData))))
             raise e
-        self._command = 'java -Djava.library.path=${soda_jni_path} -jar ${soda_clover2soda_path} %s %s' % (data_path, f(_clover_data_path)/'..'/'covarage.sodabin')
+        self._command = 'java -Djava.library.path=${soda_jni_path} -jar ${soda_clover2soda_path} -d %s -c %s' % (data_path, f(_clover_data_path)/'..'/'coverage.sodabin')
         super()._do(*args, **kvargs)
 
 print(info("%s is loaded." % as_proper("Mutant handling")))
