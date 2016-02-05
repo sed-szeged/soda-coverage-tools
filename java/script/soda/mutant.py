@@ -26,7 +26,7 @@ class MutantCode:
         _source_path = CleverString(self.source_path).value
         return Phase('generate coverage data for mutant',
             CallMaven(goals=['clean', 'clover2:setup', 'test clover2:aggregate', 'clover2:clover'], properties=['maven.test.failure.ignore=true'], profiles=['soda-clover-coverage']).From(_source_path),
-            CopyMatching(self.source_path, f(output_path)/'raw', f('target')/'clover'/'clover.*', preserve_relative_path=False),
+            CopyMatching(self.source_path, f(output_path)/'raw', f('target')/'clover'/'clover*', preserve_relative_path=False),
             ConvertCloverCoverageDataToSodaMatrix(output_path)
         )
 
@@ -195,7 +195,7 @@ class ConvertCloverCoverageDataToSodaMatrix(Call):
         except FileNotFoundError as e:
             print(error("Neither %s nor %s have found." % (as_proper(mergeData), as_proper(singleData))))
             raise e
-        self._command = 'java -Djava.library.path=${soda_jni_path} -jar ${soda_clover2soda_path} %s %s' % (data_path, f(_clover_data_path)/'..'/'covarage.sodabin')
+        self._command = 'java -Djava.library.path=${soda_jni_path} -jar ${soda_clover2soda_path} %s %s' % (data_path, f(_clover_data_path)/'covarage.sodabin')
         super()._do(*args, **kvargs)
 
 print(info("%s is loaded." % as_proper("Mutant handling")))
