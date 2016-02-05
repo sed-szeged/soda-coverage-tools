@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import glob2
+import distutils.dir_util as dir_util
 
 print(info(as_proper("File tweaking")+" features loaded."))
 
@@ -171,6 +172,28 @@ class CollectFiles(Doable):
             else:
                 shutil.copy(f, to_path)
             print(info("Append %s to %s" % (as_proper(f),as_proper(to_path))))
+
+class MergeDirectory(Doable):
+    def __init__(self, original_path, patch_path, merge_path):
+        self._original_path = original_path
+        self._patch_path = patch_path
+        self._merge_path = merge_path
+
+    def _do(self, *args, **kvargs):
+        original_path = CleverString(self._original_path).value
+        patch_path = CleverString(self._patch_path).value
+        merge_path = CleverString(self._merge_path).value
+        if os.path.isdir(original_path) and os.path.isdir(patch_path):
+            print(info("Merging directory tree %s and %s into %s." % (as_proper(original_path), as_proper(patch_path), as_proper(merge_path))))
+            try:
+                shutil.rmtree(merge_path)
+            except FileNotFoundError:
+                pass
+            dir_util.copy_tree(original_path, merge_path)
+            dir_util.copy_tree(patch_path, merge_path)
+        else:
+            print(error("%s is not a directory." % as_proper(from_path)))
+
 
 # TODO remove concurrent implementations below after single.py is properly updated
 class CollectFiles2(Doable): 
