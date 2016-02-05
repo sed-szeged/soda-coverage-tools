@@ -13,8 +13,9 @@ import hu.sed.soda.data.CoverageMatrix;
 
 public class CoverageVisitor extends Visitor {
 
-  CloverDatabase database;
-  CoverageMatrix matrix;
+  private CloverDatabase database;
+  private CoverageMatrix matrix;
+  private TestNameManager tnm = new TestNameManager();
 
   public CoverageVisitor(CloverDatabase db, CoverageMatrix m) {
     this.matrix = m;
@@ -28,7 +29,7 @@ public class CoverageVisitor extends Visitor {
     out.println("NoT: " + tests.size());
 
     for (TestCaseInfo testCaseInfo : tests) {
-      matrix.setRelation(testCaseInfo.getQualifiedName(), Utils.getMethodName(methodInfo), true);
+      matrix.setRelation(tnm.getUniqueNameFor(testCaseInfo), Utils.getMethodName(methodInfo), true);
 
       out.println(String.format("test #%d: %s", testCaseInfo.getId(), testCaseInfo.getQualifiedName()));
     }
