@@ -174,26 +174,46 @@ class CollectFiles(Doable):
             print(info("Append %s to %s" % (as_proper(f),as_proper(to_path))))
 
 class MergeDirectory(Doable):
-    def __init__(self, original_path, patch_path, merge_path):
+    def __init__(self, original_path, patch_path, merge_path, relative_path_to_patch=''):
         self._original_path = original_path
         self._patch_path = patch_path
         self._merge_path = merge_path
+        self._relative_path_to_patch = relative_path_to_patch
 
     def _do(self, *args, **kvargs):
         original_path = CleverString(self._original_path).value
         patch_path = CleverString(self._patch_path).value
         merge_path = CleverString(self._merge_path).value
+        relative_path_to_patch = CleverString(self._relative_path_to_patch).value
         if os.path.isdir(original_path) and os.path.isdir(patch_path):
-            print(info("Merging directory tree %s and %s into %s." % (as_proper(original_path), as_proper(patch_path), as_proper(merge_path))))
+            print(info("Merging directory tree %s and %s into %s (%s)." % (as_proper(original_path), as_proper(patch_path), as_proper(merge_path), as_proper(relative_path_to_patch))))
             try:
                 shutil.rmtree(merge_path)
             except FileNotFoundError:
                 pass
             dir_util.copy_tree(original_path, merge_path)
-            dir_util.copy_tree(patch_path, merge_path)
+            dir_util.copy_tree(patch_path, str(f(merge_path)/relative_path_to_patch))
         else:
-            print(error("%s is not a directory." % as_proper(from_path)))
+            print(error("Either %s or %s is not a directory." % (as_proper(original_path), as_proper(patch_path))))
 
+class MergeAllSubdirectories(Phase):
+    def __init__(self, name, original_path, patch_root, merge_root, relative_path_to_patch=''):
+        super().__init__(name)
+        self._steps = []
+        self._original_path = original_path
+        self._patch_root = patch_root
+        self._merge_root = merge_root
+        self._relative_path_to_patch = relative_path_to_patch
+
+    def _do(self):
+        original_path = CleverString(self._original_path).value
+        patch_root = CleverString(self._patch_root).value
+        merge_root = CleverString(self._merge_root).value
+        relative_path_to_patch = CleverString(self._relative_path_to_patch).value
+        for patch_path in os.listdir(patch_root):
+            merge_path = f(merge_root)/patch_path.replace(patch_root, '')
+            self._steps.append(MergeDirectory(original_path, f(patch_root)/patch_path, merge_path, relative_path_to_patch=relative_path_to_patch))
+        super()._do()
 
 # TODO remove concurrent implementations below after single.py is properly updated
 class CollectFiles2(Doable): 
