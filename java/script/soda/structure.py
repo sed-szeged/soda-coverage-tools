@@ -3,6 +3,7 @@ import pdb
 from .feedback import *
 from itertools import tee
 import datetime
+from collections import namedtuple
 
 print(info(as_proper("Logical structure")+" is loaded."))
 
@@ -74,6 +75,13 @@ class Phase(Doable):
             print(info("last phase took %s minutes to execute." % as_sample('%.4f' % (duration.seconds/60))))
             bar.value = i / len(self._steps)
         bars.remove(bar)
+
+class Filter(object, metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def apply(self, entry):
+        pass
+
+Change = namedtuple('Change', ['before', 'after'])
 
 def pairwise(iterable):
     a, b = tee(iterable)

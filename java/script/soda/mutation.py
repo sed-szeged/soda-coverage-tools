@@ -1,4 +1,5 @@
 import hashlib
+from collections import namedtuple
 
 from .annotation import *
 from .instrumentation_action import InsertInstrumentationCodeAction
@@ -98,6 +99,8 @@ class ModifySourceCodeWithPersistentActionSate(ModifySourceCode):
     def _do(self, *args, **kvargs):
         super()._do(*args, **kvargs)
 
+MutantListEntry = namedtuple('MutationListEntry', ['file', 'type', 'index', 'key', 'path'])
+MutantHumanReadableKey = namedtuple('MutantHumanReadableKey', ['file', 'type', 'index'])
 
 class CreateMutants(Doable):
     def __init__(self, annoteted_path, mutants_path, mutation_type):
@@ -126,7 +129,7 @@ class CreateMutants(Doable):
         disableMutation.filter = MutationFilter.OnIgnored
         mutantCreator.addAction(disableMutation)
 
-        mutants_hids = {}
+        mutants_hids = []
         global_mutation_index = 0
         while True:
             if self._limit:
@@ -138,21 +141,21 @@ class CreateMutants(Doable):
             mutantCreator.do()
             if mutantCreator.enabled_mutation_id:
                 hashed = hashlib.md5()
-                hid = '%s;%s;%s' %\
-                              (mutantCreator.enabled_mutation_id['file']['relative_path'],
-                               mutantCreator.enabled_mutation_id['mutation']['type'],
-                               mutantCreator.enabled_mutation_id['mutation']['count'])
-                hashed.update(hid.encode('utf-8'))
+                hid = MutantHumanReadableKey(
+                    file=mutantCreator.enabled_mutation_id['file']['relative_path'],
+                    type=mutantCreator.enabled_mutation_id['mutation']['type'],
+                    index=mutantCreator.enabled_mutation_id['mutation']['count'])
+                hashed.update(('%s;%s;%s' % (hid.file, hid.type, hid.index)).encode('utf-8'))
                 hexdigest = hashed.hexdigest()
                 mutant_path = f(_mutants_path)/('%s' % hexdigest)
                 global_mutation_index += 1
-                mutants_hids[hid] = [hexdigest, str(mutant_path)]
+                mutants_hids.append(MutantListEntry(file=hid.file, type=hid.type, index=hid.index, key=hexdigest, path=mutant_path))
                 os.rename(str(temp_path), str(mutant_path))
             else:
                 break
         with open(str(f(_mutants_path)/'mutants.list.csv'), 'w') as hid_dump:
-            for hid in mutants_hids:
-                hid_dump.write('%s;%s\n' % (hid, ';'.join(mutants_hids[hid])))
+            for entry in mutants_hids:
+                hid_dump.write(';'.join(entry))
         DeleteFolder(temp_path).do()
 
 print(info("%s is loaded" % as_proper("Program Mutation support")))

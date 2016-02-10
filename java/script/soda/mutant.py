@@ -1,19 +1,21 @@
 from abc import abstractmethod
 from abc import ABCMeta
 import os
+import hashlib
+from collections import *
 
 from .call import *
 from .filetweak import *
 from .paralellutil import *
 from soda import CleverString, info, as_sample, as_proper
 from .commonutil import *
-
+from .mutation import *
 
 class MutantCode:
     def __init__(self, entry):
-        self.entry = [item.strip() for item in entry.split(';')]
-        self.key = self.entry[3]
-        self.source_path = self.entry[-1]
+        self.entry = MutantListEntry(*[item.strip() for item in entry.split(';')])
+        self.key = self.entry.key
+        self.source_path = self.entry.path
 
     def generateTestResults(self, output_path):
         _source_path = CleverString(self.source_path).value
@@ -29,6 +31,51 @@ class MutantCode:
             CopyMatching(self.source_path, f(output_path)/'raw', f('target')/'clover'/'clover*', preserve_relative_path=False),
             ConvertCloverCoverageDataToSodaMatrix(output_path)
         )
+
+MajorLogEntry = namedtuple('MajorLogEntry', ['id', 'operator', 'original_symbol', 'replacement_symbol', 'method', 'line_number', 'change'])
+
+class MajorLogFilter(Filter):
+    def __init__(self, log_path):
+        self._entries = []
+        print(warn("log_path=%s will be resolved at declaration time, the log file need to be exist before execution." % as_proper(log_path)))
+        log_path = CleverString(log_path).value
+        with open(log_path, 'r') as log_file:
+            for line in log_file:
+                parts = [part.strip() for part in line.strip().split(':', 6)]
+                parts[-1] = Change(*[p.strip() for p in parts[-1].split('|==>')])
+                self._entries.append(MajorLogEntry(*parts))
+
+    def apply(self, data):
+        self._mutant = MutantCode(data)
+
+class MajorIdenticalChangeFilter(MajorLogFilter):
+    def apply(self, data):
+        super().apply(data)
+        for entry in self._entries:
+            if entry.id == self._mutant.entry.file and entry.change.before == entry.change.after:
+                print(info('filter %s aka %s beacuse it is an identical change' % (as_proper(self._mutant.entry), as_proper(entry))))
+                return False
+        return True
+
+class DictionariesToMutantList(Doable):
+    def __init__(self, root, list_path, filter):
+        self._root = root
+        self._list_path = list_path
+        self._filter = filter
+
+    def _do(self, *args, **kvargs):
+        root = CleverString(self._root).value
+        list_path = CleverString(self._list_path).value
+        with open(list_path, 'w') as list_file:
+            for subdir in os.listdir(root):
+                hashed = hashlib.md5()
+                hashed.update(subdir.encode('utf-8'))
+                hexdigest = hashed.hexdigest()
+                entry = MutantListEntry(file=str(subdir), type='directory based', index='unknown', key=hexdigest, path=str(f(root)/subdir))
+                if self._filter.apply(';'.join(entry)):
+                    list_file.write('%s\n' % ';'.join(entry))
+                    print(info("entry %s are created for directory %s" % (as_proper(entry), as_proper(subdir))))
+
 
 class GenerateTestResultForMutant(Doable):
     def __init__(self, mutant, output_path, list_path):
