@@ -11,14 +11,23 @@ from soda import CleverString, info, as_sample, as_proper
 from .commonutil import *
 from .mutation import *
 
+class TestExecutorEngine:
+    Jacoco = "jacoco"
+    Clover = "clover"
+
 class MutantCode:
     def __init__(self, entry):
         self.entry = MutantListEntry(*[item.strip() for item in entry.split(';')])
         self.key = self.entry.key
         self.source_path = self.entry.path
 
-    def generateTestResults(self, output_path):
+    def generateTestResults(self, output_path, engine=TestExecutorEngine.Jacoco):
         _source_path = CleverString(self.source_path).value
+        steps = [CallMaven(['clean', 'test'], ['soda-dump-test-results']).From(_source_path)]
+        if engine == TestExecutorEngine.Clover:
+            steps.append(CollectFiles(self.source_path, f('target')/'clover'/'TestResults.r0', output_path))
+        elif engine == TestExecutorEngine.Jacoco:
+            steps.append(CollectFiles(self.source_path, f('target')/'jacoco'/'0'/'TestResults.r0', output_path))
         return Phase('generate test results for mutant',
             CallMaven(['clean', 'test'], ['soda-dump-test-results']).From(_source_path),
             CollectFiles(self.source_path, f('target')/'clover'/'TestResults.r0', output_path),
@@ -78,10 +87,11 @@ class DictionariesToMutantList(Doable):
 
 
 class GenerateTestResultForMutant(Doable):
-    def __init__(self, mutant, output_path, list_path):
+    def __init__(self, mutant, output_path, list_path, engine=TestExecutorEngine.Jacoco):
         self._mutant = mutant
         self._output_path = output_path
         self._list_path = list_path
+        self._engine = engine
 
     def _do(self, *args, **kvargs):
         _source_path = CleverString(self._mutant.source_path).value
@@ -90,7 +100,7 @@ class GenerateTestResultForMutant(Doable):
         if os.path.isdir(_output_path):
             print(warn("Skipping test result generation for %s: mutant folder already present." % as_sample(_output_path)))
         else:
-            self._mutant.generateTestResults(_output_path).do()
+            self._mutant.generateTestResults(_output_path, engine=self._engine).do()
         if not os.listdir(_output_path):
             DeleteFolder(_output_path).do()
         _list_path = CleverString(self._list_path).value
@@ -166,13 +176,17 @@ class ProcessMutantsPhase(Phase, metaclass=ABCMeta):
         super()._do()
 
 class GenerateTestResultForMutants(ProcessMutantsPhase):
+    def __init__(self, name, output_path, list_path, engine=TestExecutorEngine.Jacoco):
+        super().__init__(self, name, output_path, list_path)
+        self._engine = engine
+
     def generateSteps(self, _by, _from, _output_path, _to):
         self._steps = []
         for mutant in self.mutants[_from:_to:_by]:
             print(info("Creating step for mutant '%s'" % as_proper(mutant.key)))
             if not hasattr(mutant, 'real_index'):
                 pdb.set_trace()
-            step = GenerateTestResultForMutant(mutant, f(_output_path) / 'data' / str(mutant.real_index), _output_path)
+            step = GenerateTestResultForMutant(mutant, f(_output_path) / 'data' / str(mutant.real_index), _output_path, engine=self._engine)
             self._steps.append(step)
 
 developers_of_soda = ['gergo_balogh', 'david_havas', 'david_tengeri', 'bela_vancsics']
