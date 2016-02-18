@@ -16,10 +16,19 @@ class TestExecutorEngine:
     Clover = "clover"
 
 class MutantCode:
-    def __init__(self, entry):
+    def __init__(self, entry, original_path=None, patch_root=None, remove_mutantcode=False):
         self.entry = MutantListEntry(*[item.strip() for item in entry.split(';')])
         self.key = self.entry.key
         self.source_path = self.entry.path
+        self._original_path = original_path
+        self._patch_root = patch_root
+        self._remove_mutantcode = remove_mutantcode
+
+    def initMutantCode(self):
+        pass
+
+    def teardownMutantCode(self):
+        pass
 
     def generateTestResults(self, output_path, engine=TestExecutorEngine.Jacoco):
         _source_path = CleverString(self.source_path).value
@@ -202,10 +211,12 @@ class ParalellGenerateTestResultForMutants(GenerateTestResultForMutants):
         _name_of_workers = [CleverString(name).value for name in self._name_of_workers]
         pool = ThreadPool(name_of_workers=_name_of_workers)
         indentOff()
+        Call.enableDocker(mounts=['~/.m2:/root/.m2', ], image='maven:3-jdk-7')
         for index, step in enumerate(self._steps):
             print(info("Add step#%s to queue." % as_proper(index)))
             pool.add_task(step.do)
         pool.wait_completion()
+        Call.disableDocker()
         indentOn()
 
 

@@ -6,10 +6,26 @@ import datetime
 
 print(info(as_proper("Commandline call") + " features are loaded."))
 
+#docker run --rm -t -v "$PWD":/usr/src/myapp -v ~/.m2:/root/.m2 -w /usr/src/myapp maven:3-jdk-7 bash -c "mvn3.3 clean test -Psoda-dump-test-results"
 class Call(Doable):
-    def __init__(self, command, splitby=' '):
+    _usingDocker = False
+    _mounts = []
+    _image = None
+
+    @staticmethod
+    def enableDocker(mounts=[], image=None):
+        Call._usingDocker = True
+        Call._mounts = mounts
+        Call._image = image
+
+    @staticmethod
+    def disableDocker():
+        Call._usingDocker = False
+        Call._mounts = []
+        Call._image = None
+
+    def __init__(self, command):
         self._command = command
-        self._splitby = splitby
 
     def setCommand(self, command):
         self._command = command
@@ -17,7 +33,12 @@ class Call(Doable):
     def _do(self, *args, **kvargs):
         global settings
         command = CleverString(self._command).value
-        #command = CleverString(self._command).value.split(self._splitby)
+        if Call._usingDocker:
+            dockerCommand = 'docker run --rm -t -v "$PWD":/vhome -v %s -w /vhome %s bash -c "%s"' %\
+            (' '.join(['-v %s' % CleverString(m).value for m in Call._mounts]),
+             Call._image,
+             command)
+            command = dockerCommand
         print(info('executing: %s' % command))
         Need(aString('external_timeout')).do()
         timeout = int(CleverString('${external_timeout}').value)
@@ -63,8 +84,10 @@ class CallRawDataReader(Call):
        super()._do(*args, **kvargs)
 
 class CallMaven(Call):
+
     def __init__(self, goals, profiles, properties=[],  *args, **kvargs):
-        super().__init__('mvn3.3 %s -P%s %s' % (' '.join(goals), ','.join(profiles), ' '.join(['-D%s' % s for s in properties])))
+        command = 'mvn3.3 %s -P%s %s' % (' '.join(goals), ','.join(profiles), ' '.join(['-D%s' % s for s in properties]))
+        super().__init__(command)
         self._args = args
         self._kvargs = kvargs
         self._path = None
