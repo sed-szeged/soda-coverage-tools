@@ -37,10 +37,7 @@ class MutantCode:
             steps.append(CollectFiles(self.source_path, f('target')/'clover'/'TestResults.r0', output_path))
         elif engine == TestExecutorEngine.Jacoco:
             steps.append(CollectFiles(self.source_path, f('target')/'jacoco'/'0'/'TestResults.r0', output_path))
-        return Phase('generate test results for mutant',
-            CallMaven(['clean', 'test'], ['soda-dump-test-results']).From(_source_path),
-            CollectFiles(self.source_path, f('target')/'clover'/'TestResults.r0', output_path),
-        )
+        return Phase('generate test results for mutant', *steps)
 
     def generateCoverageData(self, output_path):
         _source_path = CleverString(self.source_path).value
@@ -186,7 +183,7 @@ class ProcessMutantsPhase(Phase, metaclass=ABCMeta):
 
 class GenerateTestResultForMutants(ProcessMutantsPhase):
     def __init__(self, name, output_path, list_path, engine=TestExecutorEngine.Jacoco):
-        super().__init__(self, name, output_path, list_path)
+        super().__init__(name, output_path, list_path)
         self._engine = engine
 
     def generateSteps(self, _by, _from, _output_path, _to):

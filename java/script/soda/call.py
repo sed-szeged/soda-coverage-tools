@@ -34,7 +34,7 @@ class Call(Doable):
         global settings
         command = CleverString(self._command).value
         if Call._usingDocker:
-            dockerCommand = 'docker run --rm -t -v "$PWD":/vhome -v %s -w /vhome %s bash -c "%s"' %\
+            dockerCommand = 'docker run --rm -t -v "$PWD":/vhome %s -w /vhome %s bash -c "%s"' %\
             (' '.join(['-v %s' % CleverString(m).value for m in Call._mounts]),
              Call._image,
              command)
@@ -84,9 +84,9 @@ class CallRawDataReader(Call):
        super()._do(*args, **kvargs)
 
 class CallMaven(Call):
-
     def __init__(self, goals, profiles, properties=[],  *args, **kvargs):
-        command = 'mvn3.3 %s -P%s %s' % (' '.join(goals), ','.join(profiles), ' '.join(['-D%s' % s for s in properties]))
+        Need(aString('maven')).do()
+        command = '${maven} %s -P%s %s' % (' '.join(goals), ','.join(profiles), ' '.join(['-D%s' % s for s in properties]))
         super().__init__(command)
         self._args = args
         self._kvargs = kvargs
