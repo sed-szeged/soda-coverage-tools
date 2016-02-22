@@ -11,32 +11,46 @@ from soda import CleverString, info, as_sample, as_proper
 from .commonutil import *
 from .mutation import *
 
+isdir = os.path.isdir
+
 class TestExecutorEngine:
     Jacoco = "jacoco"
     Clover = "clover"
 
 class MutantCode:
-    def __init__(self, entry, original_path=None, patch_root=None, remove_mutantcode=False):
+    def __init__(self, entry, original_path=None, patch_path=None, relative_path_to_patch='', remove_mutantcode=False):
         self.entry = MutantListEntry(*[item.strip() for item in entry.split(';')])
         self.key = self.entry.key
         self.source_path = self.entry.path
         self._original_path = original_path
-        self._patch_root = patch_root
+        self._patch_root = patch_path
         self._remove_mutantcode = remove_mutantcode
+        self._relative_path_to_patch = relative_path_to_patch
 
     def initMutantCode(self):
-        pass
-
-    def teardownMutantCode(self):
-        pass
+        source_path = CleverString(self.source_path).value
+        if not isdir(source_path) or not os.listdir(source_path):
+            if not isdir(source_path):
+                os.makedirs(source_path)
+            print(warn("Missing source. Try to merge..."))
+            original_path = CleverString(self._original_path).value
+            patch_path = CleverString(self._patch_root).value
+            if not (isdir(original_path) and isdir(patch_path)):
+                print(error("%s or %s are invalid as original source and patch source" % (as_proper(original_path),as_proper(patch_path))))
+                return
+            MergeDirectory(original_path, patch_path, source_path, self._relative_path_to_patch)
+            self._remove_mutantcode = True
 
     def generateTestResults(self, output_path, engine=TestExecutorEngine.Jacoco):
+        self.initMutantCode()
         _source_path = CleverString(self.source_path).value
         steps = [CallMaven(['clean', 'test'], ['soda-dump-test-results']).From(_source_path)]
         if engine == TestExecutorEngine.Clover:
             steps.append(CollectFiles(self.source_path, f('target')/'clover'/'TestResults.r0', output_path))
         elif engine == TestExecutorEngine.Jacoco:
             steps.append(CollectFiles(self.source_path, f('target')/'jacoco'/'0'/'TestResults.r0', output_path))
+        if self._remove_mutantcode:
+            steps.append(DeleteFolder(self.source_path))
         return Phase('generate test results for mutant', *steps)
 
     def generateCoverageData(self, output_path):
@@ -113,13 +127,57 @@ class GenerateTestResultForMutant(Doable):
         with open(str(f(_list_path)/'mutants.list.csv'), 'a') as hid:
             hid.write('%s;%s\n' % (';'.join(self._mutant.entry), _output_path))
 
+class MutantsLoader(metaclass=ABCMeta):
+    @abstractmethod
+    def loadMutants(self):
+        pass
+
+class MutantsListLoader(MutantsLoader):
+    def __init__(self, list_path):
+        self._list_path = list_path
+
+    def loadMutants(self):
+        list_path = CleverString(self._list_path).value
+        mutants = []
+        with open(list_path, 'r') as list_of_mutants:
+            for line in list_of_mutants:
+                mutants.append(MutantCode(line.strip()))
+        mutants = sorted(mutants, key=lambda m: m.key)
+        print(info("%d mutants were loaded from '%s'" % (len(mutants), as_proper(list_path))))
+        return mutants
+
+class MutantsPatchLoader(MutantsLoader):
+    def __init__(self, original_path, patch_root, merge_root, relative_path_to_patch=''):
+        self._original_path = original_path
+        self._patch_root = patch_root
+        self._merge_root = merge_root
+        self._relative_path_to_patch = relative_path_to_patch
+
+    def loadMutants(self):
+        original_path = CleverString(self._original_path).value
+        patch_root = CleverString(self._patch_root).value
+        merge_root = CleverString(self._merge_root).value
+        relative_path_to_patch = CleverString(self._relative_path_to_patch).value
+        mutants = []
+        for patch_dir in os.listdir(patch_root):
+            hashed = hashlib.md5()
+            hashed.update(patch_dir.encode('utf-8'))
+            hexdigest = hashed.hexdigest()
+            entry = MutantListEntry(file=str(patch_dir), type='directory based', index='unknown', key=hexdigest, path=str(f(merge_root)/patch_dir))
+            mutants.append(MutantCode(
+                ';'.join(entry),
+                original_path=original_path,
+                patch_path=str(f(patch_root)/patch_dir),
+                relative_path_to_patch=relative_path_to_patch))
+        return mutants
+
 
 class ProcessMutantsPhase(Phase, metaclass=ABCMeta):
-    def __init__(self, name, output_path, list_path):
+    def __init__(self, name, output_path, mutants_loader):
         super().__init__(name)
         self.mutants = []
         self._output_path = output_path
-        self._list_path = list_path
+        self._mutants_loader = mutants_loader
         self._from = None
         self._to = None
         self._by = None
@@ -161,18 +219,10 @@ class ProcessMutantsPhase(Phase, metaclass=ABCMeta):
             mutant.real_index = real_index
             real_index += 1
 
-    def loadMutants(self, _list_path):
-        with open(_list_path, 'r') as list_of_mutants:
-            for line in list_of_mutants:
-                self.mutants.append(MutantCode(line.strip()))
-        self.mutants = sorted(self.mutants, key=lambda m: m.key)
-        print(info("%d mutants were loaded from '%s'" % (len(self.mutants), as_proper(_list_path))))
-
     def _preDo(self):
         _output_path = CleverString(self._output_path).value
-        _list_path = CleverString(self._list_path).value
 
-        self.loadMutants(_list_path)
+        self.mutants = self._mutants_loader.loadMutants()
         self.generateRealIndexes()
         _by, _from, _to = self.processSliceParameters()
         self.generateSteps(_by, _from, _output_path, _to)
@@ -182,8 +232,8 @@ class ProcessMutantsPhase(Phase, metaclass=ABCMeta):
         super()._do()
 
 class GenerateTestResultForMutants(ProcessMutantsPhase):
-    def __init__(self, name, output_path, list_path, engine=TestExecutorEngine.Jacoco):
-        super().__init__(name, output_path, list_path)
+    def __init__(self, name, output_path, mutants_loader, engine=TestExecutorEngine.Jacoco):
+        super().__init__(name, output_path, mutants_loader)
         self._engine = engine
 
     def generateSteps(self, _by, _from, _output_path, _to):
@@ -199,8 +249,8 @@ developers_of_soda = ['gergo_balogh', 'david_havas', 'david_tengeri', 'bela_vanc
 fruits = ['apple', 'cherry', 'apricot', 'avocado', 'banana', 'clementine', 'orange', 'grape']
 
 class ParalellGenerateTestResultForMutants(GenerateTestResultForMutants):
-    def __init__(self, name, output_path, list_path, name_of_workers=tuple('gery')):
-        super().__init__(name, output_path, list_path)
+    def __init__(self, name, output_path, mutants_loader, name_of_workers=tuple('gery')):
+        super().__init__(name, output_path, mutants_loader)
         self._name_of_workers = name_of_workers
 
     def _do(self):
