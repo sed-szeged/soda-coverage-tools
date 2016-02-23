@@ -38,7 +38,7 @@ class MutantCode:
             if not (isdir(original_path) and isdir(patch_path)):
                 print(error("%s or %s are invalid as original source and patch source" % (as_proper(original_path),as_proper(patch_path))))
                 return
-            MergeDirectory(original_path, patch_path, source_path, self._relative_path_to_patch)
+            MergeDirectory(original_path, patch_path, source_path, self._relative_path_to_patch).do()
             self._remove_mutantcode = True
 
     def generateTestResults(self, output_path, engine=TestExecutorEngine.Jacoco):
@@ -121,10 +121,10 @@ class GenerateTestResultForMutant(Doable):
             print(warn("Skipping test result generation for %s: mutant folder already present." % as_sample(_output_path)))
         else:
             self._mutant.generateTestResults(_output_path, engine=self._engine).do()
-        if not os.listdir(_output_path):
+        if os.path.isdir(_output_path) and not os.listdir(_output_path):
             DeleteFolder(_output_path).do()
         _list_path = CleverString(self._list_path).value
-        with open(str(f(_list_path)/'mutants.list.csv'), 'a') as hid:
+        with open(str(f(_list_path)/'mutants.list.csv'), 'a+') as hid:
             hid.write('%s;%s\n' % (';'.join(self._mutant.entry), _output_path))
 
 class MutantsLoader(metaclass=ABCMeta):
@@ -247,6 +247,7 @@ class GenerateTestResultForMutants(ProcessMutantsPhase):
 
 developers_of_soda = ['gergo_balogh', 'david_havas', 'david_tengeri', 'bela_vancsics']
 fruits = ['apple', 'cherry', 'apricot', 'avocado', 'banana', 'clementine', 'orange', 'grape']
+valar = ['Aldaron', 'Araw', 'Aule', 'Beleguur', 'Belegurth', 'Beema', 'Elbereth', 'Este', 'Irmo', 'Yavanna']
 
 class ParalellGenerateTestResultForMutants(GenerateTestResultForMutants):
     def __init__(self, name, output_path, mutants_loader, name_of_workers=tuple('gery')):

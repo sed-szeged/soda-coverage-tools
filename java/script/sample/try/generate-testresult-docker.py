@@ -18,5 +18,5 @@ Phase(
             '${patch_root}',
             '${merge_root}',
             '${relative_path_to_patch}'),
-        ['foobar'])
+        valar)
 ).do()

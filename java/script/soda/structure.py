@@ -4,6 +4,7 @@ from .feedback import *
 from itertools import tee
 import datetime
 from collections import namedtuple
+import os
 
 print(info(as_proper("Logical structure")+" is loaded."))
 
