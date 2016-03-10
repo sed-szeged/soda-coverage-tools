@@ -1,0 +1,26 @@
+from .feedback import *
+from .structure import *
+from .need import *
+import csv
+from collections import *
+
+KeyedCSV = namedtuple('KeyedCSV', 'key', 'path')
+
+class ConcatCSV(Doable):
+    def __init__(self, merge_path, delimiter=';', *paths):
+        self._merge_path = merge_path
+        self._delimiter = delimiter
+        self._paths = paths
+
+    def _do(self, *args, **kvargs):
+        merge_path = CleverString(self._merge_path).value
+        rows = []
+        headers = []
+        for current in self._paths:
+            current_path = CleverString(current.path)
+            current_key = CleverString(current.key)
+            with open(current_path, 'r') as current_file:
+                reader = csv.reader(current_file, delimiter=self._delimiter)
+                for row in reader:
+                    current_value = row[int(current_key)]
+                    selected = next(r in rows if )

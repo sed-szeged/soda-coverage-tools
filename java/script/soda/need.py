@@ -81,6 +81,8 @@ class SetVariable(Doable):
         _variables[self._variable._name] = (self._variable)
 
 class CleverString(str):
+    replace_filter = {}
+
     def __init__(self, value):
         self._value = str(value)
 
@@ -101,4 +103,6 @@ class CleverString(str):
         if re.search(r'\$\{.+\}', processed):
             print(error("Unresolved variable in string: '%s'" % as_sample(processed)))
             pdb.set_trace()
+        for original, new in CleverString.replace_filter.items():
+            processed = processed.replace(original, new)
         return processed

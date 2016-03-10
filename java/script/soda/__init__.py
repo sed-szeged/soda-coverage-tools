@@ -13,5 +13,6 @@ from .stringutil import *
 from .filesystem import *
 from .mutant import *
 from .compare import *
+from .sonar import *
 
 print(info("SoDA support is now available!"))

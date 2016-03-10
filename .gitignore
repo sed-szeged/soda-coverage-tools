@@ -2,3 +2,4 @@
 *.swp
 .idea/
 *.log
+/java/soda-sonarqube-plugin/target/
