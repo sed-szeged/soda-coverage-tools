@@ -1,56 +1,142 @@
 package hu.sed.soda.instrumenter;
 
-import org.eclipse.jdt.core.dom.AST;
-import org.eclipse.jdt.core.dom.ASTNode;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.eclipse.jdt.core.dom.ASTVisitor;
-import org.eclipse.jdt.core.dom.Block;
+import org.eclipse.jdt.core.dom.ClassInstanceCreation;
+import org.eclipse.jdt.core.dom.ConstructorInvocation;
+import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
-import org.eclipse.jdt.core.dom.Name;
-import org.eclipse.jdt.core.dom.NumberLiteral;
-import org.eclipse.jdt.core.dom.Statement;
-import org.eclipse.jdt.core.dom.TryStatement;
+import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
+import org.eclipse.jdt.core.dom.SuperMethodInvocation;
+import org.eclipse.jdt.core.dom.TypeDeclaration;
 
 public class InstrumenterVisitor extends ASTVisitor {
 
-  @SuppressWarnings("unchecked")
-  private static final Statement createCall(String methodName, int id, AST ast) {
-    Name name = ast.newName(new String[] { "hu", "sed", "soda", "tools", "CustomTestExecutionListener" });
+  int depth;
+  IMethodBinding testMethodContext;
+  Map<String, Set<String>> data;
 
-    NumberLiteral param = ast.newNumberLiteral(String.valueOf(id));
+  private void addCall(IMethodBinding method) {
+    if (testMethodContext != null) {
+      String testName = testMethodContext.getDeclaringClass().getQualifiedName() + "." + testMethodContext.getName();
 
-    MethodInvocation mthInv = ast.newMethodInvocation();
-    mthInv.setExpression(name);
-    mthInv.setName(ast.newSimpleName(methodName));
-    mthInv.arguments().add(param);
+      if (!data.containsKey(testName)) {
+        data.put(testName, new HashSet<String>());
+      }
 
-    return ast.newExpressionStatement(mthInv);
+      String signature = Utils.getSignature(method);
+      data.get(testName).add(signature);
+
+      System.err.println(String.format("\t%s", signature));
+    }
   }
 
-  @SuppressWarnings("unchecked")
+  public Map<String, Set<String>> getData() {
+    return data;
+  }
+
+  public InstrumenterVisitor() {
+    super();
+    depth = 0;
+    testMethodContext = null;
+    data = new HashMap<String, Set<String>>();
+  }
+
+  @Override
+  public boolean visit(TypeDeclaration node) {
+    System.out.println(String.format("type: %s", node.getName()));
+    return true;
+  }
+
   @Override
   public boolean visit(MethodDeclaration method) {
-    if (!Utils.isJUnit3TestMethod(method) && !Utils.isJUnit4TestMethod(method)) {
+    ++depth;
+
+    boolean j3 = Utils.isJUnit3TestMethod(method);
+    boolean j4 = Utils.isJUnit4TestMethod(method);
+
+    IMethodBinding binding = method.resolveBinding();
+    String fullname = binding.getDeclaringClass().getQualifiedName() + '.' + binding.getName();
+    System.out.print(String.format("method declaration: %s, j3: %s, j4: %s", fullname, j3, j4));
+
+    if (depth == 1 && (j3 || j4)) {
+      testMethodContext = binding;
+      System.out.println(" do(j) ...");
       return true;
+    } else if (depth > 1) {
+      System.out.println(" do(t) ...");
+      return true;
+    } else {
+      System.out.println(" skip...");
+      return false;
+    }
+  }
+
+  @Override
+  public void endVisit(MethodDeclaration node) {
+    --depth;
+    if (depth == 0) {
+      testMethodContext = null;
+    }
+    System.out.println(String.format("method declaration: %s ... done.", node.resolveBinding().getName()));
+  }
+
+  @Override
+  public boolean visit(MethodInvocation node) {
+    if (depth < 1) {
+      return false;
     }
 
-    TryStatement tryStmt = method.getAST().newTryStatement();
+    addCall(node.resolveMethodBinding());
 
-    int id = IDFactory.getInstance().createId();
+    return true;
+  }
 
-    Block tryBody = (Block) ASTNode.copySubtree(tryStmt.getAST(), method.getBody());
-    tryBody.statements().add(0, createCall("resetCoverage", id, method.getAST()));
-    tryStmt.setBody(tryBody);
+  @Override
+  public boolean visit(SuperMethodInvocation node) {
+    if (depth < 1) {
+      return false;
+    }
 
-    Block fin = method.getAST().newBlock();
-    fin.statements().add(createCall("dumpCoverage", id, method.getAST()));
+    addCall(node.resolveMethodBinding());
 
-    tryStmt.setFinally(fin);
+    return true;
+  }
 
-    Block newBody = method.getAST().newBlock();
-    newBody.statements().add(tryStmt);
+  @Override
+  public boolean visit(ConstructorInvocation node) {
+    if (depth < 1) {
+      return false;
+    }
 
-    method.setBody((Block) ASTNode.copySubtree(method.getAST(), newBody));
+    addCall(node.resolveConstructorBinding());
+
+    return true;
+  }
+
+  @Override
+  public boolean visit(SuperConstructorInvocation node) {
+    if (depth < 1) {
+      return false;
+    }
+
+    addCall(node.resolveConstructorBinding());
+
+    return true;
+  }
+
+  @Override
+  public boolean visit(ClassInstanceCreation node) {
+    if (depth < 1) {
+      return false;
+    }
+
+    addCall(node.resolveConstructorBinding());
 
     return true;
   }

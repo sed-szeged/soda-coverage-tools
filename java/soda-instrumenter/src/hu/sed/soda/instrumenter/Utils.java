@@ -7,6 +7,7 @@ import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.Annotation;
 import org.eclipse.jdt.core.dom.IAnnotationBinding;
 import org.eclipse.jdt.core.dom.IExtendedModifier;
+import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.Modifier;
@@ -104,6 +105,19 @@ public class Utils {
     nameStartWithTest = method.getName().toString().startsWith("test");
 
     return isPublicVoidAndHasNoParams(method) && isParentExtendsTestCase && nameStartWithTest;
+  }
+
+  public static final String getSignature(IMethodBinding method) {
+    String key = method.getKey();
+    String paramsAndReturn = key.replaceAll(".*(\\(.*\\)[^\\|]*).*", "$1");
+
+    StringBuilder signature = new StringBuilder();
+    signature.append(method.getDeclaringClass().getQualifiedName())
+             .append('.')
+             .append(method.isConstructor() ? "<init>" : method.getName())
+             .append(paramsAndReturn);
+
+    return signature.toString().replace('.', '/').replace(';', ',');
   }
 
 }

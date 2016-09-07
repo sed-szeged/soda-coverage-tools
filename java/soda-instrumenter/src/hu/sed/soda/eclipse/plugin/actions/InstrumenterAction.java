@@ -1,6 +1,9 @@
 package hu.sed.soda.eclipse.plugin.actions;
 
+import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -14,6 +17,8 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.text.edits.MalformedTreeException;
 import org.eclipse.ui.IActionDelegate;
@@ -23,6 +28,7 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 
 import hu.sed.soda.instrumenter.Instrumenter;
+import hu.sed.soda.instrumenter.InstrumenterVisitor;
 
 public class InstrumenterAction implements IObjectActionDelegate {
 
@@ -46,6 +52,14 @@ public class InstrumenterAction implements IObjectActionDelegate {
    * @see IActionDelegate#run(IAction)
    */
   public void run(IAction action) {
+    FileDialog dialog = new FileDialog(shell, SWT.SAVE);
+    dialog.setText("Select a file in which the data should be saved...");
+    final String path = dialog.open();
+
+    if (path.isEmpty()) {
+      return;
+    }
+
     boolean start = MessageDialog.openConfirm(shell, "SoDA", "Do You really want to start instrumenting?");
 
     if (!start) {
@@ -57,7 +71,8 @@ public class InstrumenterAction implements IObjectActionDelegate {
     if (window != null) {
       IStructuredSelection selection = (IStructuredSelection) window.getSelectionService().getSelection();
 
-      final Instrumenter instrumenter = new Instrumenter();
+      final InstrumenterVisitor visitor = new InstrumenterVisitor();
+      final Instrumenter instrumenter = new Instrumenter(visitor);
 
       for (Object element : selection.toList()) {
         if (element instanceof IAdaptable) {
@@ -67,8 +82,7 @@ public class InstrumenterAction implements IObjectActionDelegate {
           try {
             instrumenter.addUnits(selectedPackage.getCompilationUnits());
           } catch (JavaModelException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            System.err.println(String.format("Cannot get the compilation units of package (%s).", selectedPackage.getElementName()));
           }
         }
       }
@@ -86,6 +100,20 @@ public class InstrumenterAction implements IObjectActionDelegate {
               instrumenter.run(monitor);
             } catch (JavaModelException | MalformedTreeException | BadLocationException | IOException e) {
               // TODO Auto-generated catch block
+              e.printStackTrace();
+            }
+
+            System.err.println("DATA: " + visitor.getData().size());
+
+            try (FileWriter out = new FileWriter(path)) {
+              for (Entry<String, Set<String>> entry : visitor.getData().entrySet()) {
+                String test = entry.getKey();
+
+                for (String method : entry.getValue()) {
+                  out.write(String.format("%s;%s\n", test, method));
+                }
+              }
+            } catch (IOException e) {
               e.printStackTrace();
             }
 
