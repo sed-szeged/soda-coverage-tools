@@ -54,12 +54,20 @@ class MutantCode:
         return Phase('generate test results for mutant', *steps)
 
     def generateCoverageData(self, output_path):
+        self.initMutantCode()
+
         _source_path = CleverString(self.source_path).value
-        return Phase('generate coverage data for mutant',
-            CallMaven(goals=['clean', 'clover2:setup', 'test clover2:aggregate', 'clover2:clover'], properties=['maven.test.failure.ignore=true'], profiles=['soda-clover-coverage']).From(_source_path),
-            CopyMatching(self.source_path, f(output_path)/'raw', f('target')/'clover'/'clover*', preserve_relative_path=False),
-            ConvertCloverCoverageDataToSodaMatrix(output_path)
-        )
+
+        steps = [
+            CallMaven(goals=['clean', 'clover:setup', 'test clover:aggregate', 'clover:clover'], properties=['maven.test.failure.ignore=true'], profiles=['soda-clover-coverage']).From(_source_path),
+            CopyMatching(self.source_path, f(output_path) / 'raw', f('target') / 'clover' / 'clover*', preserve_relative_path=False),
+            ConvertCloverDataToSodaMatrices(output_path)
+        ]
+
+        if self._remove_mutantcode:
+            steps.append(DeleteFolder(self.source_path))
+
+        return Phase('generate coverage data for mutant', *steps)
 
 MajorLogEntry = namedtuple('MajorLogEntry', ['id', 'operator', 'original_symbol', 'replacement_symbol', 'method', 'line_number', 'change'])
 
@@ -259,7 +267,7 @@ class ParalellGenerateTestResultForMutants(GenerateTestResultForMutants):
         _name_of_workers = [CleverString(name).value for name in self._name_of_workers]
         pool = ThreadPool(name_of_workers=_name_of_workers)
         indentOff()
-        Call.enableDocker(mounts=['~/.m2:/root/.m2', ], image='maven:3-jdk-7')
+        Call.enableDocker(mounts=['~/.m2:/root/.m2'], image='maven:3-jdk-7')
         for index, step in enumerate(self._steps):
             print(info("Add step#%s to queue." % as_proper(index)))
             pool.add_task(step.do)
@@ -287,7 +295,7 @@ class GenerateCoverageDataForMutant(Doable):
         if not os.listdir(_output_path):
             DeleteFolder(_output_path).do()
         _list_path = CleverString(self._list_path).value
-        with open(str(f(_list_path)/'mutants.list.csv'), 'a') as hid:
+        with open(str(f(_list_path)/'mutants.list.csv'), 'a+') as hid:
             hid.write('%s;%s\n' % (';'.join(self._mutant.entry), _output_path))
 
 class GenerateCoveragedataForMutants(ProcessMutantsPhase):
@@ -300,22 +308,40 @@ class GenerateCoveragedataForMutants(ProcessMutantsPhase):
             step = GenerateCoverageDataForMutant(mutant, f(_output_path) / 'data' / str(mutant.real_index), _output_path)
             self._steps.append(step)
 
-class ConvertCloverCoverageDataToSodaMatrix(Call):
-    def __init__(self, clover_data_path):
+
+class ConvertCloverDataToSodaMatrices(Call):
+
+    def __init__(self, clover_data_path, generate_coverage=True, generate_results=True):
         self._clover_data_path = clover_data_path
+        self._generate_coverage = generate_coverage
+        self._generate_results = generate_results
 
     def _do(self, *args, **kvargs):
         _clover_data_path = CleverString(self._clover_data_path)._value
+
         Need(aString('soda_jni_path')).do()
         Need(aString('soda_clover2soda_path')).do()
-        mergeData = str(f(_clover_data_path)/'raw'/'cloverMerge.db')
+
+        mergedData = str(f(_clover_data_path)/'raw'/'cloverMerge.db')
         singleData = str(f(_clover_data_path)/'raw'/'clover.db')
+
         try:
-            data_path = eitherFile(mergeData, singleData)
+            data_path = eitherFile(mergedData, singleData)
         except FileNotFoundError as e:
-            print(error("Neither %s nor %s have found." % (as_proper(mergeData), as_proper(singleData))))
+            print(error("Neither %s nor %s have found." % (as_proper(mergedData), as_proper(singleData))))
             raise e
-        self._command = 'java -Djava.library.path=${soda_jni_path} -jar ${soda_clover2soda_path} -d %s -c %s' % (data_path, f(_clover_data_path)/'..'/'coverage.sodabin')
+
+        if not self._generate_coverage and not self._generate_results:
+            raise AttributeError("Neither coverage nor result data have been selected for generation. Please select at least one of them!")
+
+        self._command = 'java -Djava.library.path=${soda_jni_path} -jar ${soda_clover2soda_path} -d %s' % (data_path)
+
+        if self._generate_coverage:
+            self._command += ' -c %s' % (f(_clover_data_path)/'coverage.SoDA')
+        if self._generate_results:
+            self._command += ' -r %s' % (f(_clover_data_path)/'results.SoDA')
+
         super()._do(*args, **kvargs)
+
 
 print(info("%s is loaded." % as_proper("Mutant handling")))

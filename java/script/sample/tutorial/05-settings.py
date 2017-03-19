@@ -6,7 +6,7 @@ Phase("External calls",
     Call("echo foobar")
 ).do()
 
-settings.mode = FeedbackModes.quite
+settings.mode = FeedbackModes.quiet
 
 Phase("External calls",
     Call("echo foobar")

@@ -42,7 +42,7 @@ class Call(Doable):
         print(info('executing: %s' % command))
         Need(aString('external_timeout')).do()
         timeout = int(CleverString('${external_timeout}').value)
-        if settings.mode > FeedbackModes.quite:
+        if settings.mode > FeedbackModes.quiet:
             try:
                 sp.call(command, shell=True, timeout=timeout, *args, **kvargs)
             except sp.TimeoutExpired:
@@ -51,7 +51,7 @@ class Call(Doable):
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
             thread_name = threading.current_thread().name
             logfile_name = 'ON_%s_Call_%s.log' % (thread_name, timestamp)
-            print(warn("Quite mode enabled, all output of the external calls will redirect into log files: '%s'" % as_sample(logfile_name)))
+            print(warn("Quiet mode enabled, all output of the external calls will redirect into log files: '%s'" % as_sample(logfile_name)))
             with open(logfile_name, 'w') as log:
                 log.write('the exact command was the following:\n\n%s\n\n' % command)
             try:
@@ -84,9 +84,17 @@ class CallRawDataReader(Call):
        super()._do(*args, **kvargs)
 
 class CallMaven(Call):
-    def __init__(self, goals, profiles, properties=[],  *args, **kvargs):
+
+    def __init__(self, goals, profiles=[], properties=[],  *args, **kvargs):
         Need(aString('maven')).do()
-        command = '${maven} %s -P%s %s' % (' '.join(goals), ','.join(profiles), ' '.join(['-D%s' % s for s in properties]))
+
+        command = '${maven} %s' % (' '.join(goals))
+
+        if profiles:
+            command += ' -P%s' % (','.join(profiles))
+        if properties:
+            command += ' %s' % (' '.join(['-D%s' % prop for prop in properties]))
+
         super().__init__(command)
         self._args = args
         self._kvargs = kvargs

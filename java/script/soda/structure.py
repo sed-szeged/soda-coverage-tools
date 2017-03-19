@@ -10,11 +10,11 @@ print(info(as_proper("Logical structure")+" is loaded."))
 
 class FeedbackModes(object):
     normal = 0
-    quite = -1
+    quiet = -1
     silent = -2
 
 class Settings(object):
-    mode = FeedbackModes.quite
+    mode = FeedbackModes.quiet
 
 settings = Settings()
 
